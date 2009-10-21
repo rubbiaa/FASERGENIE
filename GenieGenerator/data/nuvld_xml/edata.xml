@@ -21,7 +21,7 @@
 
         <!-- ******************* E133 / Hydrogen data *********************** -->
 
-        <measurement observable="electron_diff_xsec">
+        <measurement observable="electron_diff_xsec" id="0">
 
                <header>
                    SLAC experiment e133 hydrogen. 
@@ -2826,7 +2826,7 @@
 
         <!-- ****************** E133 / Deuterium data ********************** -->
 
-       <measurement observable="electron_diff_xsec">
+        <measurement observable="electron_diff_xsec" id="1">
 
                <header>
 
@@ -9248,7 +9248,7 @@
 
         <!-- ******************* E140 / Hydrogen data *********************** -->
 
-        <measurement observable="electron_diff_xsec">
+        <measurement observable="electron_diff_xsec" id="0">
 
                <header>
 
@@ -10580,7 +10580,7 @@
 
         <!-- ****************** E140 / Deuterium data ********************** -->
 
-       <measurement observable="electron_diff_xsec">
+        <measurement observable="electron_diff_xsec" id="1">
 
                <header>
 
@@ -12093,7 +12093,7 @@
 
         <!-- ****************** E140x / Hydrogen data *********************** -->
 
-        <measurement observable="electron_diff_xsec">
+        <measurement observable="electron_diff_xsec" id="0">
 
                <header>
 
@@ -14416,7 +14416,7 @@
 
         <!-- ***************** E140x / Deuterium data ********************** -->
 
-       <measurement observable="electron_diff_xsec">
+       <measurement observable="electron_diff_xsec" id="1">
 
                <header>
 
@@ -16666,7 +16666,7 @@
 
         <!-- ******************* E49A10 / Hydrogen data ********************** -->
 
-        <measurement observable="electron_diff_xsec">
+        <measurement observable="electron_diff_xsec" id="0">
 
                <header>
 
@@ -24809,7 +24809,7 @@
 
         <!-- ****************** E49A10 / Deuterium data ******************** -->
 
-       <measurement observable="electron_diff_xsec">
+        <measurement observable="electron_diff_xsec" id="1">
 
                <header>
 
@@ -32849,7 +32849,7 @@
 
         <!-- ******************* E49A6  / Hydrogen data ********************** -->
 
-        <measurement observable="electron_diff_xsec">
+        <measurement observable="electron_diff_xsec" id="0">
 
                <header>
 
@@ -39778,7 +39778,7 @@
 
         <!-- ****************** E49A6  / Deuterium data ******************** -->
 
-       <measurement observable="electron_diff_xsec">
+        <measurement observable="electron_diff_xsec" id="1">
 
                <header>
 
@@ -46814,7 +46814,7 @@
 
         <!-- ******************* E49B  / Hydrogen data ********************** -->
 
-        <measurement observable="electron_diff_xsec">
+        <measurement observable="electron_diff_xsec" id="0">
 
                <header>
 
@@ -52347,7 +52347,7 @@
 
         <!-- ****************** E49B  / Deuterium data ******************** -->
 
-       <measurement observable="electron_diff_xsec">
+        <measurement observable="electron_diff_xsec" id="1">
 
                <header>
 
@@ -57882,7 +57882,7 @@
 
         <!-- ******************* E61  / Hydrogen data ********************** -->
 
-        <measurement observable="electron_diff_xsec">
+        <measurement observable="electron_diff_xsec" id="0">
 
                <header>
 
@@ -74050,7 +74050,7 @@
 
         <!-- ****************** E61  / Deuterium data ******************** -->
 
-       <measurement observable="electron_diff_xsec">
+        <measurement observable="electron_diff_xsec" id="1">
 
                <header>
 
@@ -90279,7 +90279,7 @@
 
         <!-- ******************* E87  / Hydrogen data ********************** -->
 
-        <measurement observable="electron_diff_xsec">
+        <measurement observable="electron_diff_xsec" id="0">
 
                <header>
 
@@ -90654,7 +90654,7 @@
 
         <!-- ******************* E891 / Hydrogen data ********************** -->
 
-        <measurement observable="electron_diff_xsec">
+        <measurement observable="electron_diff_xsec" id="0">
 
                <header>
 
@@ -92047,7 +92047,7 @@
 
         <!-- ****************** E891 / Deuterium data ******************** -->
 
-       <measurement observable="electron_diff_xsec">
+        <measurement observable="electron_diff_xsec" id="1">
 
                <header>
 
@@ -93412,7 +93412,7 @@
 
         <!-- ******************* E8920 / Hydrogen data ********************** -->
 
-        <measurement observable="electron_diff_xsec">
+        <measurement observable="electron_diff_xsec" id="0">
 
                <header>
 
@@ -100822,7 +100822,7 @@
 
         <!-- ****************** E8920 / Deuterium data ******************** -->
 
-       <measurement observable="electron_diff_xsec">
+        <measurement observable="electron_diff_xsec" id="1">
 
                <header>
 
@@ -106387,7 +106387,7 @@
 
         <!-- ******************* JLAB / Hydrogen data *********************** -->
 
-        <measurement observable="electron_diff_xsec">
+        <measurement observable="electron_diff_xsec" id="0">
 
                <header>
 
@@ -117544,7 +117544,7 @@
 
         <!-- ****************** JLAB / Deuterium data ********************** -->
 
-       <measurement observable="electron_diff_xsec">
+        <measurement observable="electron_diff_xsec" id="1">
 
                <header>
 
@@ -128072,7 +128072,7 @@
 
         <!-- ******************* NE11 / Hydrogen data *********************** -->
 
-        <measurement observable="electron_diff_xsec">
+        <measurement observable="electron_diff_xsec" id="0">
 
                <header>
 
@@ -129794,7 +129794,7 @@
 
         <!-- ****************** NE11 / Deuterium data ********************** -->
 
-       <measurement observable="electron_diff_xsec">
+        <measurement observable="electron_diff_xsec" id="1">
 
                <header>
 
@@ -132658,7 +132658,7 @@
 
         <!-- ****************** ONEN1HAF / Hydrogen data ********************* -->
 
-        <measurement observable="electron_diff_xsec">
+        <measurement observable="electron_diff_xsec" id="0">
 
                <header>
 
