@@ -1,11 +1,15 @@
 /*!
- * A simple ROOT macro to make a ROOT geometry box.
+ * A simple ROOT macro to make a ROOT geometry hexagonal detector.
  * Based on $ROOTSYS/tutorials/geom/rootgeom.C
- * Author: John Plows, University of Oxford ( komninos-john.plows \at physics.ox.ac.uk )
- * 31-July-2022
+ *
+ * \author  John Plows <komninos-john.plows \at physics.ox.ac.uk>
+ *          University of Oxford
+ *
+ * \cpright Copyright (c) 2003-2022, The GENIE Collaboration
+ *          For the full text of the license visit http://copyright.genie-mc.org
  */
 
-void makeBox()
+void makeHexagon()
 {
     //--- define your favourite length units. Default is m
     const std::string lunits = "m";
@@ -21,7 +25,7 @@ void makeBox()
 	std::cerr << "Unknown length units " << lunits.c_str() << ", please add a switch with the proper length conversion. Exiting now." << std::endl;
     }
     
-    TGeoManager * geom = new TGeoManager( "box1", "A simple box detector" );
+    TGeoManager * geom = new TGeoManager( "hex1", "A simple hex-prism detector" );
 
     //--- define some materials
     TGeoMaterial *matVacuum = new TGeoMaterial("Vacuum", 0,0,0);
@@ -31,23 +35,23 @@ void makeBox()
     TGeoMedium *Al = new TGeoMedium("Root Material",2, matAl);
 
     //--- make the top container volume
-    const double boxSideX = 2.5, boxSideY = 2.5, boxSideZ = 2.5; // m
-    const double bigBoxSide = 2.0 * std::max( boxSideX, std::max( boxSideY, boxSideZ ) ); // m
-    const double worldLen = 1.01 * bigBoxSide; // m
+    const double hexagonSide = 1.2; // m
+    const double prismSide = 4.3; // m
+    const double worldLen = 2.0 * std::max( 2.0 * hexagonSide, prismSide ); // m
 
     TGeoVolume * topvol = geom->MakeBox( "TOP", Vacuum,
 					 uMult * worldLen, uMult * worldLen, uMult * worldLen );
     geom->SetTopVolume( topvol );
 
-    //--- make the detector box container
+    //--- build a box to contain the container.
     TGeoVolume * boxvol = geom->MakeBox( "VOL", Vacuum,
-					 uMult * bigBoxSide, uMult * bigBoxSide, uMult * bigBoxSide );
+					 uMult * worldLen/2.0, uMult * worldLen/2.0, uMult * worldLen/2.0 );
     boxvol->SetVisibility(kFALSE);
 
     //--- do you want to rotate the box?
     //--- default: no rotation - unit vectors are { (1,0,0), (0,1,0), (0,0,1) }
     //--- Specify 3 extrinsic Euler angles (x-z-x) to rotate these by. Origin is at box centre
-    const double rx1DEG = 0.0, rzDEG = 0.0, rx2DEG = 0.0;
+    const double rx1DEG = 0.0, rzDEG = 90.0, rx2DEG = 0.0;
     const double rx1 = rx1DEG * TMath::DegToRad(),
 	rz = rzDEG * TMath::DegToRad(),
 	rx2 = rx2DEG * TMath::DegToRad();
@@ -90,33 +94,36 @@ void makeBox()
     std::cout << yun[0] << " " << yun[1] << " " << yun[2] << std::endl;
     std::cout << zun[0] << " " << zun[1] << " " << zun[2] << std::endl;
 
-    //--- make the actual box of side boxSide and rotated as desired
-    //--- origin is at centre of the box
-    TGeoVolume * box = geom->MakeBox( "BOX", Al,
-				      uMult * boxSideX, uMult * boxSideY, uMult * boxSideZ );
-    box->SetLineColor(kRed);
+    std::cout << thx << " " << phx << " " << thy << " " << phy << " " << thz << " " << phz << std::endl;
+
+    //--- make the actual hexagonal prism
+    //--- origin is at centre of the prism
+    //--- utilising TGeoXtru class. First define the blueprint polygon == hexagonal face and then prismify
+
+    TGeoVolume * xtru = geom->MakeXtru( "HEX", Al, 2 ); // two hexagonal faces
+    //--- find vertices, make these clockwise from \phi = 0
+    const double phiDEG = 60.0;
+    const double phi = phiDEG * TMath::DegToRad();
+    double xv[6], yv[6];
+    for( Int_t i = 0; i < 6; i++ ){
+	xv[i] = uMult * hexagonSide * TMath::Cos( i * phi );
+	yv[i] = uMult * hexagonSide * TMath::Sin( i * phi );
+    }
+    TGeoXtru * xtrus = ( TGeoXtru * ) xtru->GetShape();
+    xtrus->DefinePolygon( 6, xv, yv );
+    xtrus->DefineSection( 0, -uMult * prismSide/2.0, 0.0, 0.0, 1.0 );
+    xtrus->DefineSection( 1, uMult * prismSide/2.0, 0.0, 0.0, 1.0 );
+    
+    xtru->SetLineColor(kAzure+7);
     TGeoTranslation * tr0 = new TGeoTranslation( 0.0, 0.0, 0.0 );
     TGeoRotation * rot0 = new TGeoRotation( "rot0", thx, phx, thy, phy, thz, phz );
 
     //--- add directly to top volume
-    topvol->AddNode( box, 1, rot0 );
+    topvol->AddNode( xtru, 1, rot0 );
 
     //--- export this to a file
-    geom->Export("./box.root");
+    geom->Export("./hexagon.root");
 
     //--- close the geometry
     geom->CloseGeometry();
-
-    /*
-
-    //--- draw the ROOT box.
-    // by default the picture will appear in the standard ROOT TPad.
-    //if you have activated the following line in system.rootrc,
-    //it will appear in the GL viewer
-    //#Viewer3D.DefaultDrawOption:   ogl
-
-    geom->SetVisLevel(4);
-    topvol->Draw("ogle");
-
-    */
 }

@@ -1,11 +1,15 @@
 /*!
- * A simple ROOT macro to make a ROOT geometry hexagonal detector.
+ * A simple ROOT macro to make a ROOT geometry cylinder.
  * Based on $ROOTSYS/tutorials/geom/rootgeom.C
- * Author: John Plows, University of Oxford ( komninos-john.plows \at physics.ox.ac.uk )
- * 01-Aug-2022
+ *
+ * \author  John Plows <komninos-john.plows \at physics.ox.ac.uk>
+ *          University of Oxford
+ *
+ * \cpright Copyright (c) 2003-2022, The GENIE Collaboration
+ *          For the full text of the license visit http://copyright.genie-mc.org
  */
 
-void makeHexagon()
+void makeCylinder()
 {
     //--- define your favourite length units. Default is m
     const std::string lunits = "m";
@@ -20,8 +24,8 @@ void makeHexagon()
     } else {
 	std::cerr << "Unknown length units " << lunits.c_str() << ", please add a switch with the proper length conversion. Exiting now." << std::endl;
     }
-    
-    TGeoManager * geom = new TGeoManager( "hex1", "A simple hex-prism detector" );
+
+    TGeoManager * geom = new TGeoManager( "cyl1", "A simple cylindrical detector" );
 
     //--- define some materials
     TGeoMaterial *matVacuum = new TGeoMaterial("Vacuum", 0,0,0);
@@ -31,23 +35,19 @@ void makeHexagon()
     TGeoMedium *Al = new TGeoMedium("Root Material",2, matAl);
 
     //--- make the top container volume
-    const double hexagonSide = 1.2; // m
-    const double prismSide = 4.3; // m
-    const double worldLen = 2.0 * std::max( 2.0 * hexagonSide, prismSide ); // m
+    const double cylRad = 2.6; // m
+    const double cylHeight = 2.5; // m
+    const double bigBoxSide = 2.0 * std::max( TMath::Sqrt(2.0) * cylRad, cylHeight );
+    const double worldLen = 1.01 * bigBoxSide; // m
 
     TGeoVolume * topvol = geom->MakeBox( "TOP", Vacuum,
 					 uMult * worldLen, uMult * worldLen, uMult * worldLen );
     geom->SetTopVolume( topvol );
 
-    //--- build a box to contain the container.
-    TGeoVolume * boxvol = geom->MakeBox( "VOL", Vacuum,
-					 uMult * worldLen/2.0, uMult * worldLen/2.0, uMult * worldLen/2.0 );
-    boxvol->SetVisibility(kFALSE);
-
-    //--- do you want to rotate the box?
+    //--- do you want to rotate the detector?
     //--- default: no rotation - unit vectors are { (1,0,0), (0,1,0), (0,0,1) }
     //--- Specify 3 extrinsic Euler angles (x-z-x) to rotate these by. Origin is at box centre
-    const double rx1DEG = 0.0, rzDEG = 90.0, rx2DEG = 0.0;
+    const double rx1DEG = 0.0, rzDEG = 90.0, rx2DEG = 90.0;
     const double rx1 = rx1DEG * TMath::DegToRad(),
 	rz = rzDEG * TMath::DegToRad(),
 	rx2 = rx2DEG * TMath::DegToRad();
@@ -90,36 +90,21 @@ void makeHexagon()
     std::cout << yun[0] << " " << yun[1] << " " << yun[2] << std::endl;
     std::cout << zun[0] << " " << zun[1] << " " << zun[2] << std::endl;
 
-    std::cout << thx << " " << phx << " " << thy << " " << phy << " " << thz << " " << phz << std::endl;
-
-    //--- make the actual hexagonal prism
-    //--- origin is at centre of the prism
-    //--- utilising TGeoXtru class. First define the blueprint polygon == hexagonal face and then prismify
-
-    TGeoVolume * xtru = geom->MakeXtru( "HEX", Al, 2 ); // two hexagonal faces
-    //--- find vertices, make these clockwise from \phi = 0
-    const double phiDEG = 60.0;
-    const double phi = phiDEG * TMath::DegToRad();
-    double xv[6], yv[6];
-    for( Int_t i = 0; i < 6; i++ ){
-	xv[i] = uMult * hexagonSide * TMath::Cos( i * phi );
-	yv[i] = uMult * hexagonSide * TMath::Sin( i * phi );
-    }
-    TGeoXtru * xtrus = ( TGeoXtru * ) xtru->GetShape();
-    xtrus->DefinePolygon( 6, xv, yv );
-    xtrus->DefineSection( 0, -uMult * prismSide/2.0, 0.0, 0.0, 1.0 );
-    xtrus->DefineSection( 1, uMult * prismSide/2.0, 0.0, 0.0, 1.0 );
-    
-    xtru->SetLineColor(kAzure+7);
+    //--- make the actual cylinder and rotate it as desired
+    //--- origin is at 1/2 cylinder height, endcap centre
+    TGeoVolume * cyl = geom->MakeTube( "CYL", Al,
+				       0.0, uMult * cylRad, uMult * cylHeight );
+    cyl->SetLineColor(kGreen+2);
     TGeoTranslation * tr0 = new TGeoTranslation( 0.0, 0.0, 0.0 );
     TGeoRotation * rot0 = new TGeoRotation( "rot0", thx, phx, thy, phy, thz, phz );
 
     //--- add directly to top volume
-    topvol->AddNode( xtru, 1, rot0 );
+    topvol->AddNode( cyl, 1, rot0 );
 
     //--- export this to a file
-    geom->Export("./hexagon.root");
+    geom->Export("./cylinder.root");
 
     //--- close the geometry
     geom->CloseGeometry();
+    
 }

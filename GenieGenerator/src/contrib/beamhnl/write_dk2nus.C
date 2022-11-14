@@ -1,3 +1,16 @@
+//____________________________________________________________________________
+/*!
+  
+\brief   Macro to flatten a dk2nu flux file into a format ready for use with the BeamHNL module
+
+\author  John Plows <komninos-john.plows \at physics.ox.ac.uk>
+         University of Oxford
+
+\cpright Copyright (c) 2003-2022, The GENIE Collaboration
+         For the full text of the license visit http://copyright.genie-mc.org
+ */
+//____________________________________________________________________________
+
 #include "write_dk2nus.h"
 
 // ---- main method ----

@@ -1,8 +1,14 @@
-* DK2NU FLATTENING SCRIPT FOR GENIEv3 LONG-LIVED NHL MODULE
+* DK2NU FLATTENING SCRIPT FOR GENIEv3 LONG-LIVED HNL MODULE
 
   This directory contains all the files necessary to convert dk2nu flux files into flat ROOT trees
-  that contain all the necessary information for a dynamic NHL flux prediction from hadron decay
+  that contain all the necessary information for a dynamic HNL flux prediction from hadron decay
   in GENIEv3.
+
+\author  John Plows <komninos-john.plows \at physics.ox.ac.uk>
+         University of Oxford
+
+\cpright Copyright (c) 2003-2022, The GENIE Collaboration
+         For the full text of the license visit http://copyright.genie-mc.org
 
 ** Notice:
 
@@ -34,7 +40,7 @@
    + write_dk2nus.{C,h} : the ROOT macro itself. Do not call directly.
    + write_dk2nus_reduced.C : same as write_dk2nus.C but fewer branches copied to save size.
                               These branches *must* exist in your flux files
-                              (see src/contrib/nhl/exampleFluxes/ for ready-made trees you can use)
+                              (see src/contrib/beamhnl/exampleFluxes/ for ready-made trees you can use)
    
    // -- interface files
    + interactive_write_dk2nus.sh : Define important environment variables.

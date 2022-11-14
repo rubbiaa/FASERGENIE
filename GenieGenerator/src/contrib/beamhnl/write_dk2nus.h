@@ -1,8 +1,16 @@
-/*
+//____________________________________________________________________________/*
+/*!
   ! This is a script to generate flat root trees from dk2nu tuples.
   ! It copies the dk2nu structure but does away with members of bsim
   ! so that GENIE HNL simulation can avoid having dk2nu as a compile-time package
+
+\author  John Plows <komninos-john.plows \at physics.ox.ac.uk>
+         University of Oxford
+
+\cpright Copyright (c) 2003-2022, The GENIE Collaboration
+         For the full text of the license visit http://copyright.genie-mc.org
  */
+//____________________________________________________________________________
 
 #ifndef write_dk2nus_h
 #define write_dk2nus_h

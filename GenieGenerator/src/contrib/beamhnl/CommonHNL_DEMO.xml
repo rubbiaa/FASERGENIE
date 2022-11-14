@@ -14,10 +14,11 @@ Signal channels are the two-body decays pi + mu, pi + e and the three-body invis
 
 For simplicity, the detector frame USER is unrotated wrt the NEAR frame, placed 60 m downwards 1 km downstream of the target. The beam is rotated downwards by 0.05830 rad
 
-Author:
-John Plows <komninos-john.plows \at physics.ox.ac.uk>
-University of Oxford
-April 11th, 2022
+\author  John Plows <komninos-john.plows \at physics.ox.ac.uk>
+         University of Oxford
+
+\cpright Copyright (c) 2003-2022, The GENIE Collaboration
+         For the full text of the license visit http://copyright.genie-mc.org
 ******************************************************************************************************
 -->
 
