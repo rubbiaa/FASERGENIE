@@ -12,8 +12,8 @@ MAKEFILE = Makefile
 #
 include $(GENIE)/src/make/Make.include
 
-PACKAGE           = Physics/NeutralHeavyLepton
-PACKAGE_ABBREV    = PhNHL
+PACKAGE           = Physics/BeamHNL
+PACKAGE_ABBREV    = PhHNL
 DICTIONARY        = _ROOT_DICT_$(PACKAGE_ABBREV)
 LIBNAME           = libG$(PACKAGE_ABBREV)
 
