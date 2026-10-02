@@ -75,16 +75,37 @@ export LOG4CPP_LIB="/usr/lib/${_multiarch}"
 unset _multiarch
 
 # --- LHAPDF 6: a system/user installation if there is one, else ours -----------
+# Exception: an old log4cpp (1.0, with dynamic exception specifications, not valid
+# C++17) in /usr/local/include. A system LHAPDF in /usr/local puts -I/usr/local/include
+# on GENIE's compile line, and since gcc ignores -I/usr/include (a system directory)
+# that old log4cpp would shadow the apt one. In that case we build our own LHAPDF
+# (GENIE_SYSTEM_LHAPDF=1 forces the system one anyway).
+unset GENIE_BUILD_LHAPDF
+_old_log4cpp=0
+grep -qsE 'throw *\(std::invalid_argument\)' /usr/local/include/log4cpp/Priority.hh && _old_log4cpp=1
 if [ -x "${GENIE_EXT_INSTALL}/bin/lhapdf-config" ]; then
     export PATH="${GENIE_EXT_INSTALL}/bin:${PATH}"
 fi
+_lh_sys=0
 if command -v lhapdf-config >/dev/null 2>&1; then
+    _lh_sys=1
+    if [ "$(lhapdf-config --incdir)" = /usr/local/include ] && [ "${_old_log4cpp}" = 1 ] \
+       && [ "${GENIE_SYSTEM_LHAPDF:-0}" != 1 ]; then
+        echo "setup_ubuntu.sh: NOTE: old log4cpp in /usr/local/include would break the build with the"
+        echo "                 LHAPDF in /usr/local: using our own LHAPDF in ${GENIE_EXT_INSTALL}"
+        _lh_sys=0
+    fi
+fi
+if [ "${_lh_sys}" = 1 ]; then
     export LHAPDF6_LIB="$(lhapdf-config --libdir)"
     export LHAPDF6_INC="$(lhapdf-config --incdir)"
 else
     export LHAPDF6_LIB="${GENIE_EXT_INSTALL}/lib"     # filled by build_genie_ubuntu.sh
     export LHAPDF6_INC="${GENIE_EXT_INSTALL}/include"
+    [ -f "${LHAPDF6_INC}/LHAPDF/LHAPDF.h" ] || export GENIE_BUILD_LHAPDF=1
 fi
+export GENIE_OLD_LOG4CPP_USRLOCAL="${_old_log4cpp}"
+unset _lh_sys _old_log4cpp
 
 # --- Pythia6 / APFEL (ours) -------------------------------------------------------
 export PYTHIA6_LIB="${GENIE_EXT_INSTALL}/lib";  export PYTHIA6="${PYTHIA6_LIB}"

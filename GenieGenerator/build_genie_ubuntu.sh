@@ -3,7 +3,7 @@
 # build_genie_ubuntu.sh -- GENIE (FASER fork) on a plain Ubuntu/Debian machine
 #
 #   0) checks the apt packages and your ROOT (needs Geom and MathMore)
-#   1) LHAPDF 6.5.4       built from source, unless lhapdf-config already exists
+#   1) LHAPDF 6.5.4       built from source, unless a usable one is installed (see setup_ubuntu.sh)
 #   2) Pythia 6.4.28      (github.com/alisw/pythia6, tag 428-alice4)
 #   3) APFEL 3.0.6        OPTIONAL (WITH_APFEL=1): only needed for the HEDIS model
 #   4) TPythia6           (GenieGenerator/faser/TPythia6_standalone)
@@ -65,7 +65,7 @@ fetch https://github.com/alisw/pythia6/archive/refs/tags/428-alice4.tar.gz pythi
 [ "${WITH_APFEL}" = 1 ] && fetch https://github.com/scarrazza/apfel/archive/refs/tags/3.0.6.tar.gz apfel-3.0.6.tar.gz
 
 # ---- 1) LHAPDF 6 ------------------------------------------------------------
-if ! command -v lhapdf-config >/dev/null 2>&1; then
+if [ "${GENIE_BUILD_LHAPDF:-0}" = 1 ]; then
     echo "=== LHAPDF ${LHAPDF_VERSION}"
     fetch "https://lhapdf.hepforge.org/downloads/?f=LHAPDF-${LHAPDF_VERSION}.tar.gz" "LHAPDF-${LHAPDF_VERSION}.tar.gz"
     rm -rf "${BLD_DIR}/src/LHAPDF-${LHAPDF_VERSION}"
@@ -75,7 +75,7 @@ if ! command -v lhapdf-config >/dev/null 2>&1; then
       make -j "${NJ}" && make install )
     set +u; source "${SCRIPTS}/setup_ubuntu.sh"; set -u      # picks up the new lhapdf-config
 else
-    echo "=== LHAPDF: using $(command -v lhapdf-config) ($(lhapdf-config --version))"
+    echo "=== LHAPDF: using ${LHAPDF6_LIB}"
 fi
 
 # ---- 2) Pythia6 -------------------------------------------------------------

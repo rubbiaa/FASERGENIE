@@ -114,6 +114,9 @@ ubuntu)
         if v=$(dpkg-query -W -f='${Version}' "${pkg}" 2>/dev/null) && [ -n "$v" ]; then ok "${pkg}" "$v"
         else miss "${pkg}" "sudo apt install ${pkg}"; fi
     done
+    if grep -qsE 'throw *\(std::invalid_argument\)' /usr/local/include/log4cpp/Priority.hh; then
+        warn "old log4cpp" "/usr/local/include/log4cpp is log4cpp 1.0 (not C++17): GENIE must not see /usr/local/include"
+    fi
     ;;
 esac
 
@@ -160,6 +163,12 @@ if [ "${can_setup}" = 1 ]; then
     chk_file "libxml2 inc" "${LIBXML2_INC:-}/libxml/parser.h"
     chk_lib  "libxml2 lib" "${LIBXML2_LIB:-}" xml2
     chk_file "log4cpp inc" "${LOG4CPP_INC:-}/log4cpp/Category.hh"
+    if [ "${GENIE_OLD_LOG4CPP_USRLOCAL:-0}" = 1 ]; then
+        case " ${LHAPDF6_INC:-} ${PYTHIA8_INC:-} ${APFEL_INC:-} " in
+            *" /usr/local/include "*) miss "include path" "a dependency uses /usr/local/include, where the old log4cpp shadows the apt one: move /usr/local/include/log4cpp away";;
+            *) ok "include path" "/usr/local/include not used (old log4cpp there is avoided)";;
+        esac
+    fi
     chk_lib  "log4cpp lib" "${LOG4CPP_LIB:-}" log4cpp
     lh_handler=miss; [ "${SITE}" = ubuntu ] && lh_handler=tobuild     # built from source if absent
     chk_file "LHAPDF6 inc" "${LHAPDF6_INC:-}/LHAPDF/LHAPDF.h" "${lh_handler}"
