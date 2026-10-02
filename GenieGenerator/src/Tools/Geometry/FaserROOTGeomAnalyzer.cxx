@@ -97,6 +97,7 @@
 
 #include <TGeoVolume.h>
 #include <TGeoManager.h>
+#include <RVersion.h>
 #include <TGeoShape.h>
 #include <TGeoMedium.h>
 #include <TGeoMaterial.h>
@@ -782,6 +783,20 @@ void FaserROOTGeomAnalyzer::Load(string filename)
        << "The ROOT geometry doesn't exist! Initialization failed!";
      exit(1);
   }
+
+  // The FASER apps hard-wire geometry length units = mm (gevgen_faser, gmkspl_faser),
+  // which is what TGeo used by default in ROOT 6.16 - 6.24 (kG4Units).  Newer ROOT
+  // defaults to kRootUnits (cm), which made the detector 10x too small (fewer events,
+  // wrong energy spectrum).  Force kG4Units so that results match the 3.04 production.
+#if ROOT_VERSION_CODE >= ROOT_VERSION(6,22,0)
+  if (TGeoManager::GetDefaultUnits() != TGeoManager::kG4Units) {
+    TGeoManager::LockDefaultUnits(false);
+    TGeoManager::SetDefaultUnits(TGeoManager::kG4Units);
+    TGeoManager::LockDefaultUnits(true);
+  }
+#endif
+  LOG("GFaserROOTGeom", pNOTICE) << "TGeo units: Geant4 (mm), as expected by the FASER apps";
+
   TGeoManager * gm = TGeoManager::Import(filename.c_str());
 
   this->Load(gm);
