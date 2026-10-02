@@ -82,6 +82,22 @@ if grep -qsE 'throw *\(std::invalid_argument\)' /usr/local/include/log4cpp/Prior
     unset _shim
 fi
 export LOG4CPP_LIB="/usr/lib/${_multiarch}"
+# Same story at link and run time: an old liblog4cpp in /usr/local/lib is found by the
+# dynamic loader before the apt one (ld.so.conf lists /usr/local/lib first), giving
+# "undefined symbol: ...log4cpp..." when gevgen_faser starts. Use a shim lib directory
+# with links to the apt library; it goes on -L and first on LD_LIBRARY_PATH.
+unset GENIE_LOG4CPP_SHIM_LIB
+if ls /usr/local/lib/liblog4cpp.so* >/dev/null 2>&1 && ls "/usr/lib/${_multiarch}"/liblog4cpp.so* >/dev/null 2>&1; then
+    _shim="${GENIE_HOME}/external/install/lib/log4cpp-system"
+    mkdir -p "${_shim}" 2>/dev/null
+    for _l in "/usr/lib/${_multiarch}"/liblog4cpp.so*; do
+        [ -e "${_shim}/${_l##*/}" ] || ln -s "${_l}" "${_shim}/${_l##*/}"
+    done
+    if [ -e "${_shim}/liblog4cpp.so" ]; then
+        export LOG4CPP_LIB="${_shim}"; export GENIE_LOG4CPP_SHIM_LIB="${_shim}"
+    fi
+    unset _shim _l
+fi
 unset _multiarch
 
 # --- LHAPDF 6: a system/user installation if there is one, else ours -----------
@@ -145,6 +161,7 @@ export SYSLIBS="-L${TPYTHIA6_PATH}/lib"
 # --- run-time paths ------------------------------------------------------------
 export PATH="${GENIE_INSTALL}/bin:${PATH}"
 _ld="${GENIE_INSTALL}/lib:${GENIE_EXT_INSTALL}/lib"
+[ -n "${GENIE_LOG4CPP_SHIM_LIB:-}" ] && _ld="${GENIE_LOG4CPP_SHIM_LIB}:${_ld}"
 [ "${LHAPDF6_LIB}" != "${GENIE_EXT_INSTALL}/lib" ] && _ld="${_ld}:${LHAPDF6_LIB}"
 [ -n "${PYTHIA8_LIB:-}" ] && _ld="${_ld}:${PYTHIA8_LIB}"
 export LD_LIBRARY_PATH="${_ld}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"

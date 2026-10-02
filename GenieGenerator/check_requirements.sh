@@ -170,6 +170,17 @@ if [ "${can_setup}" = 1 ]; then
         esac
     fi
     chk_lib  "log4cpp lib" "${LOG4CPP_LIB:-}" log4cpp
+    if ls /usr/local/lib/liblog4cpp.so* >/dev/null 2>&1; then
+        if [ -n "${GENIE_LOG4CPP_SHIM_LIB:-}" ]; then
+            ok "log4cpp shim" "apt library via ${GENIE_LOG4CPP_SHIM_LIB} (ahead of /usr/local/lib/liblog4cpp)"
+        else
+            warn "log4cpp lib" "/usr/local/lib/liblog4cpp* may be loaded instead of the apt library at run time"
+        fi
+        if [ -x "${GENIE_INSTALL}/bin/gevgen_faser" ]; then
+            l4=$(ldd "${GENIE_INSTALL}/bin/gevgen_faser" 2>/dev/null | awk '/liblog4cpp/{print $3; exit}')
+            case "$l4" in /usr/local/*) miss "log4cpp run" "gevgen_faser loads ${l4}";; "") ;; *) ok "log4cpp run" "gevgen_faser loads ${l4}";; esac
+        fi
+    fi
     lh_handler=miss; [ "${SITE}" = ubuntu ] && lh_handler=tobuild     # built from source if absent
     chk_file "LHAPDF6 inc" "${LHAPDF6_INC:-}/LHAPDF/LHAPDF.h" "${lh_handler}"
     chk_lib  "LHAPDF6 lib" "${LHAPDF6_LIB:-}" LHAPDF "${lh_handler}"
