@@ -25,6 +25,7 @@
                         [-l luminosity_to_generate]
                         [-L flux_file_lumi_norm]
                         [-o outfile_prefix]
+                        [--gfaser] [--gfaser-cc-only]
                         [--seed random_number_seed]
                         [-t top_volume_name_at_geom || -t +Vol1-Vol2...]  
                         [-m max_path_lengths_xml_file]
@@ -94,6 +95,14 @@
               The default output filename is:
               gntp.[run_number].ghep.root
               This cmd line arguments lets you override 'gntp'
+           --gfaser
+              Also write the flat FASER ntuple (tree "gFaser", same branches as
+              faser/Ntuple/convertGHEP.C) while generating, to
+              [prefix].[run_number].gfaser.root, next to the GHEP file.
+           --gfaser-cc-only
+              As --gfaser, but keep only charged-current events in the gFaser
+              file (the GHEP file still has all events); same selection as
+              convertGHEP.C(..., ccOnly=true).
            --seed
               Random number seed.
            -t
@@ -191,6 +200,7 @@
 // #include "Framework/Interaction/Interaction.h"
 #include "Framework/Messenger/Messenger.h"
 #include "Framework/Ntuple/NtpWriter.h"
+#include "Framework/GHEP/GHepParticle.h"
 #include "Framework/Ntuple/NtpMCFormat.h"
 #include "Framework/Numerical/RandomGen.h"
 // #include "Framework/Numerical/Spline.h"
@@ -224,6 +234,106 @@ using std::map;
 using std::ostringstream;
 
 using namespace genie;
+
+#include <cstdlib>
+#include <TFile.h>
+#include <TTree.h>
+#include <TDirectory.h>
+#include <TLorentzVector.h>
+
+//____________________________________________________________________________
+// Flat "gFaser" ntuple written during generation (--gfaser): the same tree,
+// branches and content as faser/Ntuple/convertGHEP.C, without the extra pass.
+namespace {
+class GFaserNtpWriter {
+public:
+  bool Open(const string & filename, bool cc_only) {
+    TDirectory * prev = gDirectory;
+    fCCOnly = cc_only;
+    fFile = TFile::Open(filename.c_str(), "RECREATE");
+    if (!fFile || fFile->IsZombie()) { if (prev) prev->cd(); return false; }
+    fFile->cd();
+    fTree = new TTree("gFaser", "gFaserTitle");
+    fTree->Branch("vx", &fVx, "vx/D");
+    fTree->Branch("vy", &fVy, "vy/D");
+    fTree->Branch("vz", &fVz, "vz/D");
+    fTree->Branch("n",  &fN,  "n/I");
+    fTree->Branch("name",          "std::vector<std::string>", &fName);
+    fTree->Branch("pdgc",          "std::vector<int>",    &fPdg);
+    fTree->Branch("status",        "std::vector<int>",    &fStatus);
+    fTree->Branch("firstMother",   "std::vector<int>",    &fFirstMother);
+    fTree->Branch("lastMother",    "std::vector<int>",    &fLastMother);
+    fTree->Branch("firstDaughter", "std::vector<int>",    &fFirstDaughter);
+    fTree->Branch("lastDaughter",  "std::vector<int>",    &fLastDaughter);
+    fTree->Branch("px", "std::vector<double>", &fPx);
+    fTree->Branch("py", "std::vector<double>", &fPy);
+    fTree->Branch("pz", "std::vector<double>", &fPz);
+    fTree->Branch("E",  "std::vector<double>", &fE);
+    fTree->Branch("m",  "std::vector<double>", &fMass);   // PDG mass
+    fTree->Branch("M",  "std::vector<double>", &fM);      // actual (off-shell) mass
+    if (prev) prev->cd();
+    return true;
+  }
+  // returns false if the event was not kept (--gfaser-cc-only)
+  bool Add(EventRecord & event) {
+    if (!fTree) return false;
+    int n = event.GetEntries();
+    if (fCCOnly && !IsCC(event, n)) return false;
+    fName.clear(); fPdg.clear(); fStatus.clear();
+    fFirstMother.clear(); fLastMother.clear(); fFirstDaughter.clear(); fLastDaughter.clear();
+    fPx.clear(); fPy.clear(); fPz.clear(); fE.clear(); fMass.clear(); fM.clear();
+    TLorentzVector * vtx = event.Vertex();
+    fVx = vtx->X(); fVy = vtx->Y(); fVz = vtx->Z();
+    fN  = n;
+    for (int j = 0; j < n; j++) {
+      GHepParticle * p = event.Particle(j);
+      fName.push_back(p->Name());
+      fPdg.push_back(p->Pdg());
+      fStatus.push_back((int) p->Status());
+      fFirstMother.push_back(p->FirstMother());
+      fLastMother.push_back(p->LastMother());
+      fFirstDaughter.push_back(p->FirstDaughter());
+      fLastDaughter.push_back(p->LastDaughter());
+      fPx.push_back(p->Px()); fPy.push_back(p->Py()); fPz.push_back(p->Pz());
+      fE.push_back(p->E());
+      fMass.push_back(p->Mass());
+      fM.push_back(p->IsOnMassShell() ? p->Mass() : p->P4()->M());
+    }
+    fTree->Fill();
+    return true;
+  }
+  void Save(double weight) {
+    if (!fFile) return;
+    TDirectory * prev = gDirectory;
+    bool prev_is_mine = (prev == fFile);
+    fFile->cd();
+    if (weight > 0) fTree->SetWeight(weight);   // same normalization as the GHEP tree
+    fTree->Write();
+    fFile->Close();
+    delete fFile; fFile = 0; fTree = 0;
+    if (prev && !prev_is_mine) prev->cd();
+  }
+  Long64_t Entries() const { return fTree ? fTree->GetEntries() : 0; }
+private:
+  // same selection as convertGHEP.C (ccOnly): NC if particle 2 or 4 is the neutrino
+  static bool IsCC(EventRecord & event, int n) {
+    int nupdg = std::abs(event.Particle(0)->Pdg());
+    if (n >= 3) {
+      if (std::abs(event.Particle(2)->Pdg()) == nupdg) return false;
+      if (n >= 5 && std::abs(event.Particle(4)->Pdg()) == nupdg) return false;
+    }
+    return true;
+  }
+  TFile * fFile = 0;
+  TTree * fTree = 0;
+  bool fCCOnly = false;
+  double fVx = 0, fVy = 0, fVz = 0;
+  int fN = 0;
+  std::vector<std::string> fName;
+  std::vector<int> fPdg, fStatus, fFirstMother, fLastMother, fFirstDaughter, fLastDaughter;
+  std::vector<double> fPx, fPy, fPz, fE, fMass, fM;
+};
+}
 
 void GetCommandLineArgs (int argc, char ** argv);
 void Initialize         (void);
@@ -276,6 +386,8 @@ string          gOptExtMaxPlXml;               // max path lengths XML file for 
 string          gOptEvFilePrefix;              // event file prefix
 long int        gOptRanSeed;                   // random number seed
 string          gOptInpXSecFile;               // cross-section splines
+bool            gOptWriteGFaser = false;       // also write the flat gFaser ntuple
+bool            gOptGFaserCCOnly = false;      // ... with CC events only
 
 //____________________________________________________________________________
 int main(int argc, char ** argv)
@@ -412,6 +524,21 @@ int main(int argc, char ** argv)
   ntpw.CustomizeFilenamePrefix(gOptEvFilePrefix);
   ntpw.Initialize();
 
+  // Optionally, the flat gFaser ntuple ([prefix].[run].gfaser.root)
+  GFaserNtpWriter gfaserw;
+  string gfaser_filename;
+  if (gOptWriteGFaser) {
+    ostringstream fn;
+    fn << gOptEvFilePrefix << "." << gOptRunNu << ".gfaser.root";
+    gfaser_filename = fn.str();
+    if (!gfaserw.Open(gfaser_filename, gOptGFaserCCOnly)) {
+      LOG("gevgen_faser", pFATAL) << "Cannot open " << gfaser_filename;
+      exit(1);
+    }
+    LOG("gevgen_faser", pNOTICE) << "Also writing the gFaser ntuple to " << gfaser_filename
+                                 << (gOptGFaserCCOnly ? " (CC events only)" : "");
+  }
+
   // Create a MC job monitor for a periodically updated status file
   GMCJMonitor mcjmonitor(gOptRunNu);
   mcjmonitor.SetRefreshRate(RunOpt::Instance()->MCJobStatusRefreshRate());
@@ -446,6 +573,7 @@ int main(int argc, char ** argv)
 
       // Add event at the output ntuple, refresh the mc job monitor & clean-up
       ntpw.AddEventRecord(ievent, event);
+      if (gOptWriteGFaser) gfaserw.Add(*event);
       mcjmonitor.Update(ievent,event);
       ievent++;
      }
@@ -459,6 +587,7 @@ int main(int argc, char ** argv)
   // * Print job statistics &
   // * calculate normalization factor for the generated sample
   // *************************************************************************
+  double gfaser_pot = 0;
   if ( !gOptUsingFluxHst && gOptUsingRootGeom ) {
     // POT normalization will only be calculated if event generation was based
     // on beam simulation ntuples (not just histograms) & a detailed detector
@@ -497,6 +626,7 @@ int main(int argc, char ** argv)
         << " " << exposureUnits << " * detector";
 
     ntpw.EventTree()->SetWeight(pot); // store POT
+    gfaser_pot = pot;
   }
 
   // *************************************************************************
@@ -504,6 +634,11 @@ int main(int argc, char ** argv)
   // *************************************************************************
 
   // Save the generated event tree & close the output file
+  if (gOptWriteGFaser) {
+    LOG("gevgen_faser", pNOTICE) << "Saving " << gfaserw.Entries()
+                                 << " events in " << gfaser_filename;
+    gfaserw.Save(gfaser_pot);
+  }
   ntpw.Save();
 
   // Clean-up
@@ -619,6 +754,9 @@ void GetCommandLineArgs(int argc, char ** argv)
   ParseFluxOption(parser);
 
   // random number seed
+  gOptGFaserCCOnly = parser.OptionExists("gfaser-cc-only");
+  gOptWriteGFaser  = parser.OptionExists("gfaser") || gOptGFaserCCOnly;
+
   if( parser.OptionExists("seed") ) {
     LOG("gevgen_faser", pINFO) << "Reading random number seed";
     gOptRanSeed = parser.ArgAsLong("seed");
@@ -1007,6 +1145,7 @@ void PrintSyntax(void)
     << "\n                   [-l luminosity_to_generate]"
     << "\n                   [-L flux_file_lumi_norm (default: 150 fb^-1)]"
     << "\n                   [-o outfile_prefix]"
+    << "\n                   [--gfaser] [--gfaser-cc-only]"
     << "\n                   [--seed random_number_seed]"
     << "\n                   [-t top_volume_name_at_geom || -t +Vol1-Vol2...]"
     << "\n                   [-m max_path_lengths_xml_file]"

@@ -108,6 +108,26 @@ Run the event-generation scripts with `source`, not `./`: macOS strips `DYLD_*`
 variables from `/bin/bash` scripts (the libraries have absolute install names, so
 this is only a precaution).
 
+## Event output: GHEP and gFaser
+
+`gevgen_faser` always writes the GENIE GHEP file `[prefix].[run].ghep.root`.
+With `--gfaser` it also writes the flat FASER ntuple `[prefix].[run].gfaser.root`
+(tree `gFaser`) during generation, so `faser/Ntuple/convertGHEP.C` is no longer needed:
+
+```bash
+gevgen_faser -l 1000.0 -r 0 -g $GENIE/faser/FASERCAL_V10.gdml \
+   -f $GENIE/faser/Fluxes/Aki_2024/events_light_4x4.root --seed 2999833 \
+   --cross-sections $GENIE_HOME/faser_xsec/faserSplines.7TeV.xml \
+   -o fasercal.Aki2024.v10.light --gfaser          # or --gfaser-cc-only
+```
+
+The branches are those of `convertGHEP.C` (`vx vy vz n name pdgc status firstMother
+lastMother firstDaughter lastDaughter px py pz E m M`). One difference: in `convertGHEP.C`
+the `M` branch is filled from the `m` vector (a bug), so there `M` = PDG mass; with
+`--gfaser`, `M` is the actual (off-shell) mass. `--gfaser-cc-only` applies the same CC
+selection as `convertGHEP.C(..., true)` to the gFaser file only. When the run is
+normalized to POT, the gFaser tree carries the same weight as the GHEP tree.
+
 ## Flux files
 
 The large Kling 2023 flux ntuples (`GenieGenerator/faser/Fluxes/Kling_2023/*.root`, up to 575 MB)
