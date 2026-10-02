@@ -25,7 +25,7 @@ using std::string;
 
 namespace genie {
 
-typedef enum EKineVar {
+typedef enum EKineVar : unsigned int {
 
   kKVNull = 0,
   kKVx,

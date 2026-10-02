@@ -43,6 +43,10 @@ endif
 ifeq ($(strip $(GOPT_ENABLE_T2K)),YES)
 TGT_BASE += gevgen_t2k
 endif
+ifeq ($(strip $(GOPT_ENABLE_FASER)),YES)
+TGT_BASE += gevgen_faser
+TGT_BASE += gmkspl_faser
+endif
 ifeq ($(strip $(GOPT_ENABLE_ATMO)),YES)
 TGT_BASE += gevgen_atmo
 TGT_BASE += gevgen_upmu
@@ -102,7 +106,8 @@ $(GENIE_BIN_PATH)/gevgen: gEvGen.o $(call find_libs,gevgen)
 	@echo "** Building gevgen"
 	$(LD) $(LDFLAGS) gEvGen.o $(LIBRARIES) -o $(GENIE_BIN_PATH)/gevgen
 
-# neutrino event generation app for Fermilab experiments (DUNE, or experiments in NuMI and Booster beamlines)
+# neutrino event generation app for Fermilab (DUNE, or experiments in NuMI and Booster beamlines)
+# and LHC (Faser) experiments
 #
 $(GENIE_BIN_PATH)/gevgen_fnal: gFNALExptEvGen.o $(call find_libs,gevgen_fnal)
 	@echo "** Building gevgen_fnal"
@@ -117,6 +122,12 @@ $(GENIE_BIN_PATH)/gevgen_t2k: gT2KEvGen.o $(call find_libs,gevgen_t2k)
 	$(LD) $(LDFLAGS) gT2KEvGen.o $(LIBRARIES) -o $(GENIE_BIN_PATH)/gevgen_t2k
 #	@echo "For historical purposes, add symbolic link to the T2K event generation app"
 #	ln -sf $(GENIE_BIN_PATH)/gevgen_t2k $(GENIE_BIN_PATH)/gT2Kevgen
+
+# FASER neutrino event generation app
+#
+$(GENIE_BIN_PATH)/gevgen_faser: gFaserEvGen.o $(call find_libs,gevgen_faser)
+	@echo "** Building gevgen_faser"
+	$(LD) $(LDFLAGS) gFaserEvGen.o $(LIBRARIES) -o $(GENIE_BIN_PATH)/gevgen_faser
 
 # atmospheric neutrino event generation app
 #
@@ -213,6 +224,10 @@ $(GENIE_BIN_PATH)/gxscomp: gXSecComp.o $(call find_libs,gxscomp)
 $(GENIE_BIN_PATH)/gmkspl: gMakeSplines.o $(call find_libs,gmkspl)
 	@echo "** Building gmkspl"
 	$(LD) $(LDFLAGS) gMakeSplines.o $(LIBRARIES) -o $(GENIE_BIN_PATH)/gmkspl
+#
+$(GENIE_BIN_PATH)/gmkspl_faser: gMakeFaserSplines.o $(call find_libs,gmkspl)
+	@echo "** Building gmkspl_faser"
+	$(LD) $(LDFLAGS) gMakeFaserSplines.o $(LIBRARIES) -o $(GENIE_BIN_PATH)/gmkspl_faser
 
 # x-section spline building utility for dark matter scattering
 #
@@ -297,7 +312,7 @@ clean: FORCE
 	$(RM) $(TGT)
 
 distclean: FORCE
-	$(RM) $(patsubst $(GENIE_BIN_DIR),$(GENIE_BIN_INSTALLATION_PATH),$(TGT))
+	$(RM) $(patsubst $(GENIE_BIN_PATH)%,$(GENIE_BIN_INSTALLATION_PATH)%,$(TGT))
 
 FORCE:
 

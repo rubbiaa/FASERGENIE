@@ -23,6 +23,8 @@
    -->
 
   <priority msgstream="Messenger">             NOTICE </priority>
+  <priority msgstream="FaserGMCJDriver">       WARN  </priority>
+  <priority msgstream="GFaserROOTGeom">        WARN  </priority>
   <priority msgstream="EventLoop">             DEBUG  </priority>
   <priority msgstream="GCPlex">                DEBUG  </priority>
   <priority msgstream="GSimFiles">             DEBUG  </priority>
