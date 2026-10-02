@@ -1,0 +1,117 @@
+# -----------------------------------------------------------------------------
+# setup_ubuntu.sh  --  GENIE (FASER fork) environment on a plain Ubuntu/Debian machine
+#
+# No conda, no CVMFS, no container. Uses:
+#   - your own ROOT build (found automatically, or ROOT_THISROOT=/path/bin/thisroot.sh)
+#   - system packages from apt: gfortran cmake libxml2-dev libgsl-dev liblog4cpp5-dev
+#   - LHAPDF 6, Pythia6, TPythia6 (and APFEL) built by build_genie_ubuntu.sh
+#     into <work>/external/install, unless LHAPDF is already installed (lhapdf-config)
+#   - optionally your own Pythia8 build (PYTHIA8=/path, used with WITH_PYTHIA8=1)
+#
+# Usage (bash or zsh):   source setup_ubuntu.sh
+# -----------------------------------------------------------------------------
+
+if [ -n "${BASH_VERSION:-}" ]; then
+    _genie_here="${BASH_SOURCE[0]}"
+elif [ -n "${ZSH_VERSION:-}" ]; then
+    eval '_genie_here="${(%):-%x}"'
+fi
+
+# --- locate the GENIE source tree --------------------------------------------
+# Normally this script sits in the top directory of the GENIE repository; it also
+# works from a work area that contains GenieGenerator/ (e.g. through a symlink).
+_genie_real="$(readlink -f "${_genie_here}" 2>/dev/null || echo "${_genie_here}")"
+_genie_dir="$( cd "$( dirname "${_genie_real}" )" >/dev/null 2>&1 && pwd )"
+if [ -d "${_genie_dir}/src/make" ]; then
+    _genie_src="${_genie_dir}"                          # repository top directory
+else
+    _genie_src="${_genie_dir}/GenieGenerator"           # work-area layout
+fi
+export GENIE="${_genie_src}"                          # GENIE source tree
+export GENIE_HOME="$( dirname "${GENIE}" )"           # work area: install/, build/, run/, faser_xsec/
+unset _genie_here _genie_real _genie_dir _genie_src
+
+export GENIE_INSTALL="${GENIE_HOME}/install"          # GENIE only (wiped by "make distclean")
+export GENIE_EXT_INSTALL="${GENIE_HOME}/external/install"   # LHAPDF, Pythia6, TPythia6, APFEL
+export TPYTHIA6_PATH="${GENIE_EXT_INSTALL}"
+
+# --- ROOT --------------------------------------------------------------------
+# Already set up (root-config on PATH)?  Otherwise try ROOT_THISROOT, then the
+# usual places for a self-built ROOT.
+if ! command -v root-config >/dev/null 2>&1; then
+    for _f in "${ROOT_THISROOT:-}" \
+              $(find "$HOME/ROOT" -maxdepth 3 -path "*/root_install*/bin/thisroot.sh" 2>/dev/null | sort -V -r) \
+              "$HOME"/root/bin/thisroot.sh "$HOME"/root_install/bin/thisroot.sh \
+              /opt/root/bin/thisroot.sh /usr/local/bin/thisroot.sh; do
+        if [ -n "${_f}" ] && [ -f "${_f}" ]; then
+            . "${_f}"; echo "setup_ubuntu.sh: ROOT from ${_f}"; break
+        fi
+    done
+    unset _f
+fi
+if ! command -v root-config >/dev/null 2>&1; then
+    echo "setup_ubuntu.sh: ERROR: ROOT not found. Source your thisroot.sh first, or"
+    echo "                 export ROOT_THISROOT=/path/to/root/bin/thisroot.sh"
+    return 1 2>/dev/null || exit 1
+fi
+export ROOTSYS="${ROOTSYS:-$(root-config --prefix)}"
+
+# --- system libraries (apt) -----------------------------------------------------
+_multiarch="$(gcc -print-multiarch 2>/dev/null)"; _multiarch="${_multiarch:-x86_64-linux-gnu}"
+export LIBXML2_INC=/usr/include/libxml2
+export LIBXML2_LIB="/usr/lib/${_multiarch}"
+export LOG4CPP_INC=/usr/include
+export LOG4CPP_LIB="/usr/lib/${_multiarch}"
+unset _multiarch
+
+# --- LHAPDF 6: a system/user installation if there is one, else ours -----------
+if [ -x "${GENIE_EXT_INSTALL}/bin/lhapdf-config" ]; then
+    export PATH="${GENIE_EXT_INSTALL}/bin:${PATH}"
+fi
+if command -v lhapdf-config >/dev/null 2>&1; then
+    export LHAPDF6_LIB="$(lhapdf-config --libdir)"
+    export LHAPDF6_INC="$(lhapdf-config --incdir)"
+else
+    export LHAPDF6_LIB="${GENIE_EXT_INSTALL}/lib"     # filled by build_genie_ubuntu.sh
+    export LHAPDF6_INC="${GENIE_EXT_INSTALL}/include"
+fi
+
+# --- Pythia6 / APFEL (ours) -------------------------------------------------------
+export PYTHIA6_LIB="${GENIE_EXT_INSTALL}/lib";  export PYTHIA6="${PYTHIA6_LIB}"
+export APFEL_LIB="${GENIE_EXT_INSTALL}/lib";    export APFEL_INC="${GENIE_EXT_INSTALL}/include"
+
+# --- Pythia8 (optional, your own build) -----------------------------------------
+if [ -z "${PYTHIA8:-}" ]; then
+    PYTHIA8="$(find "$HOME/ROOT" "$HOME" -maxdepth 1 -type d -name "pythia8*" 2>/dev/null | sort -V | tail -1)"
+fi
+if [ -n "${PYTHIA8:-}" ] && [ -f "${PYTHIA8}/include/Pythia8/Pythia.h" ]; then
+    export PYTHIA8
+    export PYTHIA8_INC="${PYTHIA8}/include"
+    export PYTHIA8_LIB="${PYTHIA8}/lib"
+    [ -d "${PYTHIA8}/share/Pythia8/xmldoc" ] && export PYTHIA8DATA="${PYTHIA8}/share/Pythia8/xmldoc"
+else
+    unset PYTHIA8
+fi
+
+# --- PDFs: GENIE ships its own LHAPDF sets ----------------------------------
+export LHAPATH="${GENIE}/data/evgen/pdfs"
+export LHAPDF_DATA_PATH="${GENIE}/data/evgen/pdfs${LHAPDF_DATA_PATH:+:${LHAPDF_DATA_PATH}}"
+
+# --- TPythia6 ------------------------------------------------------------------
+export LINUX_SYS_INCLUDES="-I${TPYTHIA6_PATH}/include/TPythia6"
+export SYSLIBS="-L${TPYTHIA6_PATH}/lib"
+
+# --- run-time paths ------------------------------------------------------------
+export PATH="${GENIE_INSTALL}/bin:${PATH}"
+_ld="${GENIE_INSTALL}/lib:${GENIE_EXT_INSTALL}/lib"
+[ "${LHAPDF6_LIB}" != "${GENIE_EXT_INSTALL}/lib" ] && _ld="${_ld}:${LHAPDF6_LIB}"
+[ -n "${PYTHIA8_LIB:-}" ] && _ld="${_ld}:${PYTHIA8_LIB}"
+export LD_LIBRARY_PATH="${_ld}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+unset _ld
+export ROOT_INCLUDE_PATH="${GENIE_INSTALL}/include/GENIE:${TPYTHIA6_PATH}/include/TPythia6${ROOT_INCLUDE_PATH:+:${ROOT_INCLUDE_PATH}}"
+
+echo "GENIE env (Ubuntu): ROOT $(root-config --version) ($(root-config --prefix)), arch $(root-config --arch)"
+echo "  GENIE         = ${GENIE}"
+echo "  GENIE_INSTALL = ${GENIE_INSTALL}"
+echo "  LHAPDF6       = ${LHAPDF6_LIB}"
+echo "  PYTHIA8       = ${PYTHIA8:-<none>}"

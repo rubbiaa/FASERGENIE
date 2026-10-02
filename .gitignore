@@ -9,3 +9,5 @@
 /.git-old-GenieGenerator/
 *.log
 .DS_Store
+*.ghep.root
+genie-mcjob-*.status

@@ -13,18 +13,22 @@ and the `faser/` directory (geometries, fluxes, run and spline scripts).
 
 These scripts build this GENIE tree plus its external pieces (Pythia6, TPythia6,
 optionally APFEL and Pythia8) natively, either on macOS/Apple Silicon or on any
-EL9 machine with CVMFS (e.g. lxplus). They replace the old
+EL9 machine with CVMFS (e.g. lxplus), or on a plain Ubuntu/Debian machine. They replace the old
 `ATLAS_container.sh` / `asetup` / `setupGenerator.sh` / `buildGenerator.sh` chain.
 
-The four scripts live in `GenieGenerator/` (with shortcuts in the top directory);
+The scripts live in `GenieGenerator/` (with shortcuts in the top directory);
 their helpers are in `GenieGenerator/faser/build/external/`.
 
 | file | purpose |
 |---|---|
+| `setup.sh` | **one entry point**: detects the site (macOS / Ubuntu / EL9+CVMFS) and sources the matching `setup_*.sh`, then prints a sanity check; override with `GENIE_SITE=mac\|lcg\|ubuntu` |
+| `build.sh` | same detection, runs the matching `build_genie_*.sh` |
 | `build_genie_mac.sh` | one-time build on macOS (conda-forge env in `~/miniforge3/envs/genie`) |
 | `setup_mac.sh` | environment for every new terminal on macOS (zsh or bash) |
 | `build_genie_lcg.sh` | one-time build on EL9 from a plain LCG view (`LCG_107` by default) |
 | `setup_lcg.sh` | environment for every new shell on EL9 |
+| `build_genie_ubuntu.sh` | one-time build on Ubuntu/Debian with your own ROOT and apt packages |
+| `setup_ubuntu.sh` | environment for every new shell on Ubuntu/Debian |
 | `GenieGenerator/faser/build/external/patch_genie_make.sh` | idempotent fixes to `src/make/Make.include` (Apple Silicon flags, Pythia6 link line) |
 | `GenieGenerator/faser/build/external/pythia6/CMakeLists.txt` | builds Pythia 6.4.28 + ROOT interface as one shared library |
 | `GenieGenerator/faser/TPythia6_standalone/` | plain-CMake build of ROOT's old TPythia6 classes (`libEGPythia6`) |
@@ -37,9 +41,9 @@ event output are created next to `GenieGenerator/` and are ignored by git (`.git
 ```
 GENIE3.06/                    <- this repository = work directory (GENIE_HOME)
 ├── README.md  GENIE_3.04_vs_3.06.md
-├── setup_mac.sh  build_genie_mac.sh  setup_lcg.sh  build_genie_lcg.sh   <- shortcuts
+├── setup.sh  build.sh  setup_<site>.sh  build_genie_<site>.sh   <- shortcuts (site = mac, lcg, ubuntu)
 ├── GenieGenerator/           <- GENIE source tree (GENIE)
-│   ├── setup_mac.sh  build_genie_mac.sh  setup_lcg.sh  build_genie_lcg.sh
+│   ├── setup*.sh  build*.sh
 │   └── faser/build/external/ <- helpers used by the build scripts
 ├── install/  build/          <- created by the build script (git-ignored)
 ├── external/downloads/       <- cached source tarballs
@@ -53,15 +57,37 @@ GENIE3.06/                    <- this repository = work directory (GENIE_HOME)
 ```bash
 git clone https://github.com/rubbiaa/GENIE.git GENIE3.06
 cd GENIE3.06
-./build_genie_mac.sh                                 # ~20 min the first time
-source setup_mac.sh                                  # every new terminal
+./build.sh                                           # ~20 min the first time
+source setup.sh                                      # every new terminal
 ```
 
-On lxplus use `build_genie_lcg.sh` / `setup_lcg.sh` instead.
+`build.sh` / `setup.sh` pick the right per-site script (`*_mac.sh`, `*_lcg.sh`, `*_ubuntu.sh`);
+you can also call those directly.
 
 Options (environment variables for the build scripts):
 `WITH_PYTHIA8=1` (Pythia8 hadronization), `WITH_APFEL=1` (needed only for the HEDIS model),
 `NJ=<n>` (parallel jobs); for LCG also `LCG_VERSION`, `LCG_PLATFORM`.
+
+## Ubuntu / Debian notes
+
+No conda and no CVMFS: it uses your own ROOT and the distribution packages.
+
+```bash
+sudo apt install build-essential gfortran cmake libxml2-dev libgsl-dev liblog4cpp5-dev curl
+./build.sh            # = ./build_genie_ubuntu.sh; stops with the apt line if a package is missing
+source setup.sh
+```
+
+- **ROOT**: taken from the PATH if `root-config` is already there; otherwise
+  `ROOT_THISROOT=/path/bin/thisroot.sh`, otherwise the newest `~/ROOT/root_install*/bin/thisroot.sh`,
+  then `~/root`, `/opt/root`, `/usr/local`. It must have been built with `geom` and `mathmore`
+  (the build script checks for `libGeom`, `libMathMore`, `libEG`). Any ROOT 6.26+ works; TPythia6 is
+  built separately, so ROOT ≥ 6.32 is fine.
+- **LHAPDF 6**: a system `lhapdf-config` is used if present; otherwise LHAPDF 6.5.4 is built into
+  `external/install` (no Python bindings).
+- **Pythia8** (optional): `PYTHIA8=/path/to/pythia8xxx`, or found automatically as `~/ROOT/pythia8*`
+  or `~/pythia8*`; build with `WITH_PYTHIA8=1 ./build.sh`.
+- Pythia6, TPythia6 (and APFEL with `WITH_APFEL=1`) are built into `external/install` as on macOS.
 
 ## macOS notes
 
