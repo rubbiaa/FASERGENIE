@@ -1,0 +1,10 @@
+# Work-area products (recreated by build_genie_*.sh) -- never committed
+/install/
+/build/
+/external/
+/arm64-apple-darwin20.0.0/
+/faser_xsec/
+/run/
+/.git-old-GenieGenerator/
+*.log
+.DS_Store

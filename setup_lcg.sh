@@ -1,0 +1,1 @@
+GenieGenerator/setup_lcg.sh

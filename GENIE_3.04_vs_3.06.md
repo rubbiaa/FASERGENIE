@@ -75,11 +75,11 @@ The FASER fork consists of 43 commits by Dave Casper. Everything outside `faser/
 | `ROOTSYS` | required by `configure` | no longer required (#442) |
 | Pythia6 link | broken variables in the fork (`-lpythia6` never linked explicitly) | fixed upstream; links `-lPythia6` (the build script provides that name) |
 | APFEL | enabled | off by default (`WITH_APFEL=1`); only needed for HEDIS |
-| scripts | `ATLAS_container.sh`, `go`, `kk`, `setupGenerator.sh`, `buildGenerator.sh` | `build_genie_{mac,lcg}.sh`, `setup_{mac,lcg}.sh` in the repo top directory |
+| scripts | `ATLAS_container.sh`, `go`, `kk`, `setupGenerator.sh`, `buildGenerator.sh` | `build_genie_{mac,lcg}.sh`, `setup_{mac,lcg}.sh` in `GenieGenerator/` (shortcuts at the top level) |
 
 ## 6. What this means for production
 
-1. **Splines must be regenerated** for 3.06 (`faser/Splines/`: `calcSplinesN.sh` → `mergeSplinesN.sh` →
+1. **Splines must be regenerated** for 3.06 (`GenieGenerator/faser/Splines/`: `calcSplinesN.sh` → `mergeSplinesN.sh` →
    `calc*SplinesA.sh` → `mergeSplinesA.sh`). The 3.04 `faserSplines.7TeV.xml` is not valid.
 2. **Expect small differences in decays and charm hadronization** at the event level. The model
    parameters are the same, but the classes were rewritten. A validation against 3.04 output (e.g. charm
