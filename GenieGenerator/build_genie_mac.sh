@@ -2,7 +2,7 @@
 # -----------------------------------------------------------------------------
 # build_genie_mac.sh -- native GENIE (FASER fork, 3.04 or 3.06) build on macOS / Apple Silicon
 #
-#   1) conda-forge env ~/miniforge3/envs/genie: ROOT, LHAPDF6, GSL, libxml2, log4cpp, compilers
+#   1) conda-forge env ~/miniforge3/envs/genie: ROOT, LHAPDF6, GSL, libxml2, log4cpp, clang/gfortran
 #   2) Pythia 6.4.28      (github.com/alisw/pythia6, tag 428-alice4)
 #   3) APFEL 3.0.6        OPTIONAL (WITH_APFEL=1): only needed for GENIE's HEDIS model.
 #                          3.0.x still ships libAPFEL.la, which GENIE's configure checks for
@@ -10,7 +10,8 @@
 #                          Pythia8Hadro2019 hadronization (Pythia6 is still required)
 #   4) TPythia6           (GenieGenerator/faser/TPythia6_standalone)
 #   5) GENIE              (after patch_genie_make.sh: macosxarm64 + Pythia6 link fix)
-# Everything goes to <work>/install; downloads are cached in <work>/external/downloads,
+# GENIE goes to <work>/install, Pythia6/TPythia6/APFEL to <work>/external/install
+# (GENIE's "make distclean" empties <work>/install); downloads are cached in <work>/external/downloads,
 # where <work> is the directory that contains GenieGenerator/.
 #
 # Usage:  ./build_genie_mac.sh
@@ -57,24 +58,37 @@ if [ ! -d "${ENV_PREFIX}/conda-meta" ]; then
     _solver="${MINIFORGE}/bin/mamba"; [ -x "${_solver}" ] || _solver="${MINIFORGE}/bin/conda"
     CONDA_SUBDIR=osx-arm64 "${_solver}" create -y -p "${ENV_PREFIX}" \
         -c conda-forge --override-channels \
-        root lhapdf gsl libxml2 log4cpp cmake make compilers python
+        root lhapdf gsl libxml2 log4cpp cmake make python clang_osx-arm64 clangxx_osx-arm64 gfortran_osx-arm64
 fi
 if [ "${WITH_PYTHIA8}" = 1 ] && [ ! -f "${ENV_PREFIX}/include/Pythia8/Pythia.h" ]; then
     echo "=== Adding pythia8 to ${ENV_PREFIX}"
     _solver="${MINIFORGE}/bin/mamba"; [ -x "${_solver}" ] || _solver="${MINIFORGE}/bin/conda"
     CONDA_SUBDIR=osx-arm64 "${_solver}" install -y -p "${ENV_PREFIX}" -c conda-forge --override-channels pythia8
 fi
+
+# conda-forge's ROOT pulls in newer libc++ headers (libcxx-devel) than the clang of the
+# "compilers" metapackage; clang must match them (e.g. clang 18 + libc++ 20 headers gives
+# "expected ')'" in <charconv> and "undeclared identifier NAN" in <complex>).
+_major() { ls "${ENV_PREFIX}"/conda-meta/$1-[0-9]*.json 2>/dev/null | sed -E "s#.*/$1-([0-9]+)\..*#\1#" | head -1; }
+_hdr=$(_major libcxx-headers); _clg=$(_major clangxx_osx-arm64)
+if [ -n "${_hdr}" ] && [ "${_hdr}" != "${_clg}" ]; then
+    echo "=== conda clang ${_clg:-none} does not match libc++ headers ${_hdr}: installing clang ${_hdr}"
+    "${MINIFORGE}/bin/conda" remove -y -p "${ENV_PREFIX}" compilers c-compiler cxx-compiler fortran-compiler >/dev/null 2>&1 || true
+    _solver="${MINIFORGE}/bin/mamba"; [ -x "${_solver}" ] || _solver="${MINIFORGE}/bin/conda"
+    CONDA_SUBDIR=osx-arm64 "${_solver}" install -y -p "${ENV_PREFIX}" -c conda-forge --override-channels \
+        "clang_osx-arm64=${_hdr}" "clangxx_osx-arm64=${_hdr}" gfortran_osx-arm64
+fi
 export GENIE_CONDA_PREFIX="${ENV_PREFIX}"
 
 set +u; source "${SCRIPTS}/setup_mac.sh"; set -u
 [ "$(root-config --arch)" = "macosxarm64" ] || { echo "ROOT arch is $(root-config --arch), expected macosxarm64"; exit 1; }
-mkdir -p "${BLD_DIR}" "${GENIE_INSTALL}"/{bin,lib,include}
+mkdir -p "${BLD_DIR}" "${GENIE_INSTALL}"/{bin,lib,include} "${GENIE_EXT_INSTALL}"/{lib,include}
 
 # GENIE >= 3.06 links "-lPythia6" (ROOT's historical name for the library).
 # Provide that name next to libEGPythia6 unless it already resolves (on the default
 # case-insensitive macOS filesystem libpythia6.dylib already matches).
 provide_libPythia6() {   # $1 = the real Pythia6 shared library
-    local dst="${GENIE_INSTALL}/lib/libPythia6.${1##*.}"
+    local dst="${GENIE_EXT_INSTALL}/lib/libPythia6.${1##*.}"
     [ -e "${dst}" ] || ln -s "$1" "${dst}"
 }
 
@@ -89,9 +103,9 @@ echo "=== Pythia6"
 rm -rf "${BLD_DIR}/src/pythia6-428-alice4" "${BLD_DIR}/pythia6"; mkdir -p "${BLD_DIR}/src"
 tar xzf "${DL}/pythia6-428-alice4.tar.gz" -C "${BLD_DIR}/src"
 cmake -S "${EXT}/pythia6" -B "${BLD_DIR}/pythia6" -DCMAKE_BUILD_TYPE=Release \
-      -DPYTHIA6_SRC="${BLD_DIR}/src/pythia6-428-alice4" -DCMAKE_INSTALL_PREFIX="${GENIE_INSTALL}"
+      -DPYTHIA6_SRC="${BLD_DIR}/src/pythia6-428-alice4" -DCMAKE_INSTALL_PREFIX="${GENIE_EXT_INSTALL}"
 cmake --build "${BLD_DIR}/pythia6" -j "${NJ}" && cmake --install "${BLD_DIR}/pythia6"
-provide_libPythia6 "${GENIE_INSTALL}/lib/libpythia6.dylib"
+provide_libPythia6 "${GENIE_EXT_INSTALL}/lib/libpythia6.dylib"
 
 # ---- 3) APFEL (optional) ---------------------------------------------------
 if [ "${WITH_APFEL}" = 1 ]; then
@@ -104,12 +118,12 @@ if [ "${WITH_APFEL}" = 1 ]; then
       # Use the GNU name for Apple Silicon instead.
       _triplet="aarch64-apple-darwin$(uname -r)"
       env -u build_alias -u host_alias \
-          ./configure --prefix="${GENIE_INSTALL}" --disable-pywrap \
+          ./configure --prefix="${GENIE_EXT_INSTALL}" --disable-pywrap \
                       --build="${_triplet}" --host="${_triplet}"
       # --disable-pywrap is ignored by APFEL 3.0.6's configure.ac: drop it (and docs/examples) by hand
       sed -i.bak -E 's/^(SUBDIRS = .*) pywrap/\1/; s/^(SUBDIRS = .*) examples/\1/; s/^(SUBDIRS = .*) doc/\1/' Makefile
       make -j "${NJ}" && make install )
-    [ -f "${GENIE_INSTALL}/lib/libAPFEL.la" ] || { echo "APFEL install failed"; exit 1; }
+    [ -f "${GENIE_EXT_INSTALL}/lib/libAPFEL.la" ] || { echo "APFEL install failed"; exit 1; }
 fi
 
 # ---- 4) TPythia6 ------------------------------------------------------------

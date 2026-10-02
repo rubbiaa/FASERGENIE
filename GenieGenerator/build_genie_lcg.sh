@@ -38,7 +38,7 @@ cmake --install "${WORK}/build/TPythia6"
 # Provide that name next to libEGPythia6 unless it already resolves (on the default
 # case-insensitive macOS filesystem libpythia6.dylib already matches).
 provide_libPythia6() {   # $1 = the real Pythia6 shared library
-    local dst="${GENIE_INSTALL}/lib/libPythia6.${1##*.}"
+    local dst="${GENIE_EXT_INSTALL}/lib/libPythia6.${1##*.}"
     [ -e "${dst}" ] || ln -s "$1" "${dst}"
 }
 provide_libPythia6 "${PYTHIA6_LIB}/libpythia6.so"

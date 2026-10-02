@@ -37,8 +37,9 @@ fi
 export GENIE="${_genie_src}"                          # GENIE source tree
 export GENIE_HOME="$( dirname "${GENIE}" )"           # work area: install/, build/, run/, faser_xsec/
 unset _genie_here _genie_real _genie_dir _genie_src
-export GENIE_INSTALL="${GENIE_HOME}/install"          # bin/ lib/ include/ of GENIE + TPythia6
-export TPYTHIA6_PATH="${GENIE_INSTALL}"
+export GENIE_INSTALL="${GENIE_HOME}/install"          # GENIE only (wiped by "make distclean")
+export GENIE_EXT_INSTALL="${GENIE_HOME}/external/install"   # TPythia6 (+ libPythia6 link)
+export TPYTHIA6_PATH="${GENIE_EXT_INSTALL}"
 
 # --- resolve the real package directories behind the view -------------------
 # (the view flattens everything into ${LCG_VIEW}/lib; for Pythia6 we need the
@@ -78,7 +79,7 @@ export SYSLIBS="-L${TPYTHIA6_PATH}/lib"
 
 # --- run-time paths ------------------------------------------------------------
 export PATH="${GENIE_INSTALL}/bin:${PATH}"
-export LD_LIBRARY_PATH="${GENIE_INSTALL}/lib:${PYTHIA6_LIB}:${LD_LIBRARY_PATH}"
+export LD_LIBRARY_PATH="${GENIE_INSTALL}/lib:${GENIE_EXT_INSTALL}/lib:${PYTHIA6_LIB}:${LD_LIBRARY_PATH}"
 # GENIE's Make.include uses an undefined $(PYTHIA_DIR) for -L, so help the linker:
 export LIBRARY_PATH="${PYTHIA6_LIB}:${LCG_VIEW}/lib:${LIBRARY_PATH}"
 export ROOT_INCLUDE_PATH="${TPYTHIA6_PATH}/include/TPythia6:${ROOT_INCLUDE_PATH}"

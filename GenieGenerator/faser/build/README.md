@@ -31,6 +31,7 @@ GENIE3.06/                    <- work directory (GENIE_HOME)
 │   └── faser/build/          <- helpers + this README
 ├── install/  build/          <- created by the build script
 ├── external/downloads/       <- cached source tarballs
+├── external/install/         <- Pythia6, TPythia6 (and APFEL): kept apart from install/
 ├── faser_xsec/               <- cross-section splines (make or copy them here)
 └── run/                      <- event output used by faser/run*.sh
 ```

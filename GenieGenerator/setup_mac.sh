@@ -51,12 +51,14 @@ fi
 export ROOTSYS="${ROOTSYS:-$(root-config --prefix)}"    # GENIE's configure insists on it
 
 # --- GENIE locations -----------------------------------------------------------
-export GENIE_INSTALL="${GENIE_HOME}/install"          # GENIE + Pythia6 + APFEL + TPythia6
-export TPYTHIA6_PATH="${GENIE_INSTALL}"
+export GENIE_INSTALL="${GENIE_HOME}/install"          # GENIE only (wiped by "make distclean")
+# Pythia6, TPythia6, APFEL: separate prefix, so GENIE's distclean cannot remove them
+export GENIE_EXT_INSTALL="${GENIE_HOME}/external/install"
+export TPYTHIA6_PATH="${GENIE_EXT_INSTALL}"
 
 # --- dependency paths for GENIE's ./configure ---------------------------------
-export PYTHIA6_LIB="${GENIE_INSTALL}/lib";  export PYTHIA6="${PYTHIA6_LIB}"
-export APFEL_LIB="${GENIE_INSTALL}/lib";    export APFEL_INC="${GENIE_INSTALL}/include"
+export PYTHIA6_LIB="${GENIE_EXT_INSTALL}/lib";  export PYTHIA6="${PYTHIA6_LIB}"
+export APFEL_LIB="${GENIE_EXT_INSTALL}/lib";    export APFEL_INC="${GENIE_EXT_INSTALL}/include"
 export LHAPDF6_LIB="${CONDA_PREFIX}/lib";   export LHAPDF6_INC="${CONDA_PREFIX}/include"
 export LOG4CPP_LIB="${CONDA_PREFIX}/lib";   export LOG4CPP_INC="${CONDA_PREFIX}/include"
 export LIBXML2_LIB="${CONDA_PREFIX}/lib";   export LIBXML2_INC="${CONDA_PREFIX}/include/libxml2"
@@ -86,8 +88,8 @@ export SYSLIBS="-L${TPYTHIA6_PATH}/lib"
 # DYLD_LIBRARY_PATH; ROOT_LIBRARY_PATH lets ROOT macros (convertGHEP.C) autoload
 # GENIE/TPythia6 libraries, and it survives macOS SIP (DYLD_* does not).
 export PATH="${GENIE_INSTALL}/bin:${PATH}"
-export ROOT_LIBRARY_PATH="${GENIE_INSTALL}/lib${ROOT_LIBRARY_PATH:+:${ROOT_LIBRARY_PATH}}"
-export DYLD_LIBRARY_PATH="${GENIE_INSTALL}/lib${DYLD_LIBRARY_PATH:+:${DYLD_LIBRARY_PATH}}"
+export ROOT_LIBRARY_PATH="${GENIE_INSTALL}/lib:${GENIE_EXT_INSTALL}/lib${ROOT_LIBRARY_PATH:+:${ROOT_LIBRARY_PATH}}"
+export DYLD_LIBRARY_PATH="${GENIE_INSTALL}/lib:${GENIE_EXT_INSTALL}/lib${DYLD_LIBRARY_PATH:+:${DYLD_LIBRARY_PATH}}"
 export ROOT_INCLUDE_PATH="${GENIE_INSTALL}/include/GENIE:${TPYTHIA6_PATH}/include/TPythia6${ROOT_INCLUDE_PATH:+:${ROOT_INCLUDE_PATH}}"
 
 echo "GENIE env (macOS): conda env ${GENIE_CONDA_PREFIX}, ROOT $(root-config --version), arch $(root-config --arch)"
