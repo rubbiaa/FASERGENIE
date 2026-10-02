@@ -1,7 +1,7 @@
 # GENIE for FASER: 3.04 → 3.06 differences
 
 *Comparison of `faser-R-3_04_00` (gitlab.cern.ch/faser/offline/geniegenerator, last commit 2023-10-07)
-with the new `main` of github.com/rubbiaa/GENIE (official GENIE R-3_06_02 of 2025-07-01 plus the FASER port).
+with `main` of github.com/rubbiaa/GENIE (official GENIE R-3_06_02 of 2025-07-01 plus the FASER port).
 Prepared 2026-10-02.*
 
 ## 1. Where the versions sit
@@ -86,7 +86,14 @@ The FASER fork consists of 43 commits by Dave Casper. Everything outside `faser/
    and τ samples with the same fluxes and geometry) is worthwhile before switching.
 3. **Pythia8 hadronization is now a realistic option** (`WITH_PYTHIA8=1`, then select the Pythia8
    variants in the tune). Pythia6 can eventually be dropped.
-4. **Status of the port:**
-   - **Not yet confirmed to compile.** At the time of writing the FASER code had not yet been built against 3.06.
-   - **Missing helper, now added.** The first Mac build was started before `NaturalIsotopes::GetIsotopeData`
-     was added back, so rerun `./build_genie_mac.sh` if that build failed in `FaserROOTGeomAnalyzer`.
+4. **macOS specifics found while porting** (all handled by the build scripts):
+   - **clang version:** conda's `compilers` metapackage pins clang 18, while ROOT 6.40 needs libc++ 20
+     headers, so clang is matched to the headers.
+   - **NAN/INFINITY:** the macOS 27 SDK takes `NAN`/`INFINITY` from `<float.h>`, which clang 20
+     defines only in non-strict mode, so GENIE is compiled with `-std=gnu++20`.
+   - **libc++ availability markup:** the markup is disabled (`-D_LIBCPP_DISABLE_AVAILABILITY`).
+     `rootcling` gets the same flags.
+   - **Externals install path:** GENIE 3.06's `make distclean` empties the install directory,
+     so the external libraries are installed elsewhere.
+   - **TPythia6 link path:** 3.06 links its libraries with `$(ROOT_LIBRARIES)`, which contains
+     `-lEGPythia6` without its path; the `Make.include` patch adds it.

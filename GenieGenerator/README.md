@@ -1,81 +1,92 @@
-> **FASER fork of GENIE 3.06.02.** Native build without the ATLAS container:
-> `./build_genie_mac.sh` (macOS) or `./build_genie_lcg.sh` (EL9 + CVMFS), then
-> `source setup_mac.sh` / `source setup_lcg.sh`. Details: [faser/build/README.md](faser/build/README.md).
+# GENIE 3.06.02 — FASER fork
 
-# The GENIE Event Generator
+This is the official [GENIE](http://www.genie-mc.org) neutrino event generator, release
+**R-3_06_02**, with the FASER additions ported from `faser-R-3_04_00`
+(gitlab.cern.ch/faser/offline/geniegenerator): `gevgen_faser`, `gmkspl_faser`,
+`FaserGMCJDriver`, `FaserROOTGeomAnalyzer`, the 7 TeV validity range, the `F23_00a` tune
+and the `faser/` directory (geometries, fluxes, run and spline scripts).
 
+- What changed with respect to the FASER 3.04 fork: [GENIE_3.04_vs_3.06.md](GENIE_3.04_vs_3.06.md)
+- The original GENIE README: [README_GENIE.md](README_GENIE.md)
 
-<table style="border-collapse: collapse; border: none;">
-  <tr>
-    <td style="border: none; padding-right: 12px; vertical-align: top;">
-      <img src="./data/logo/genie_logo.png" alt="GENIE logo" width="300px">
-    </td>
-    <td style="border: none; padding: 0;">
-      <p>
-        The GENIE Generator is a <b>leading simulation tool used by nearly all modern neutrino experiments</b>. 
-        It features a <b>modular framework</b> with <b>state-of-the-art physics</b> for neutrino and charged-lepton interactions, 
-        and several BSM channels. It incorporates results from GENIE’s global data analysis and includes multiple tuned models. 
-        GENIE supports all neutrino types, targets, and energy scales from MeV to PeV, 
-        and provides tools for flux handling, geometry, event generation, and reweighting.
-      </p>
-      <p>
-        For more information, visit 
-        <a href="http://www.genie-mc.org" target="_blank">http://genie-mc.org</a> |
-        <a href="https://genie-mc.github.io" target="_blank">https://genie-mc.github.io</a>.
-      </p>
-    </td>
-  </tr>
-</table>
+## Building without the ATLAS container
 
-## Authors:
+These scripts build this GENIE tree plus its external pieces (Pythia6, TPythia6,
+optionally APFEL and Pythia8) natively, either on macOS/Apple Silicon or on any
+EL9 machine with CVMFS (e.g. lxplus). They replace the old
+`ATLAS_container.sh` / `asetup` / `setupGenerator.sh` / `buildGenerator.sh` chain.
 
-Luis Alvarez-Ruso (*IFIC*), Costas Andreopoulos (*Liverpool*), Adi Ashkenazi (*Tel Aviv*), Joshua Barrow (*Minnesota*), Steve Dytman (*Pittsburgh*), Hugh Gallagher (*Tufts*), Alfonso Andres Garcia Soto (*IFIC*), Steven Gardiner (*Fermilab*), Matan Goldenberg (*Tel Aviv*), Robert Hatcher (*Fermilab*), Or Hen (*MIT*), Igor Kakorin (*JINR*), Konstantin Kuzmin (*ITEP and JINR*), Liang Liu (*Fermilab*), Xianguo Lu (*Warwick*), Anselmo Meregaglia (*Bordeaux, CNRS/IN2P3*), Vadim Naumov (*JINR*), Afroditi Papadopoulou (*Argonne*), Gabriel Perdue (*Fermilab*), Komninos-John Plows (*Oxford*), Marco Roda (*Liverpool*), Alon Sportes (*Tel Aviv*), Júlia Tena Vidal (*Tel Aviv*), Jeremy Wolcott (*Tufts*), Qiyu Yan (*UCAS and Warwick*)
+The four scripts are in the top directory of the repository; their helpers live in
+`faser/build/external/`.
 
-**Past authors:** Christopher Barry (*Liverpool*), Steve Dennis (*Liverpool*), Walter Giele (*Fermilab*), Timothy Hobbs (*Fermilab*), Libo Jiang (*Pittsburgh*), Rhiannon Jones (*Liverpool*), Weijun Li (*Oxford*), Donna Naples (*Pittsburgh*), Beth Slater (*Liverpool*), Noah Steinberg (*Fermilab*), Vladyslav Syrotenko (*Tufts*), Julia Yarba (*Fermilab*) 
+| file | purpose |
+|---|---|
+| `build_genie_mac.sh` | one-time build on macOS (conda-forge env in `~/miniforge3/envs/genie`) |
+| `setup_mac.sh` | environment for every new terminal on macOS (zsh or bash) |
+| `build_genie_lcg.sh` | one-time build on EL9 from a plain LCG view (`LCG_107` by default) |
+| `setup_lcg.sh` | environment for every new shell on EL9 |
+| `faser/build/external/patch_genie_make.sh` | idempotent fixes to `src/make/Make.include` (Apple Silicon flags, Pythia6 link line) |
+| `faser/build/external/pythia6/CMakeLists.txt` | builds Pythia 6.4.28 + ROOT interface as one shared library |
+| `faser/TPythia6_standalone/` | plain-CMake build of ROOT's old TPythia6 classes (`libEGPythia6`) |
 
-For more details on the GENIE collaboration please visit [this page](https://genie-mc.github.io/collaboration.html).
+## Layout
 
-## Copyright
+Clone the repository as `GenieGenerator` inside a dedicated work directory.
+Builds, installs, downloads, splines and event output go to that work directory,
+never into the repository:
 
-Copyright (c) 2003-2025, The GENIE Collaboration. For information, visit [this page](https://genie-mc.github.io/copyright.html).
+```
+GENIE3.06/                    <- work directory (GENIE_HOME)
+├── GenieGenerator/           <- this repository (GENIE)
+│   ├── setup_mac.sh  build_genie_mac.sh  setup_lcg.sh  build_genie_lcg.sh
+│   └── faser/build/external/ <- helpers used by the build scripts
+├── install/  build/          <- created by the build script
+├── external/downloads/       <- cached source tarballs
+├── external/install/         <- Pythia6, TPythia6 (and APFEL): kept apart from install/
+├── faser_xsec/               <- cross-section splines (make or copy them here)
+└── run/                      <- event output used by faser/run*.sh
+```
 
-## Citing GENIE
+## Quick start (macOS)
 
-If you use GENIE, please cite it properly. [Click here for citation guidelines](https://genie-mc.github.io/citing.html).
+```bash
+mkdir GENIE3.06 && cd GENIE3.06
+git clone https://github.com/rubbiaa/GENIE.git GenieGenerator
+GenieGenerator/build_genie_mac.sh                    # ~20 min the first time
+source GenieGenerator/setup_mac.sh                   # every new terminal
+```
 
-DOIs for recent releases of the GENIE Event Generator are listed below:
-- v3.06.00 [![DOI](https://zenodo.org/badge/150272240.svg)](https://doi.org/10.5281/zenodo.15635509)
-- v3.04.02 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15635784.svg)](https://doi.org/10.5281/zenodo.15635784)
-- v3.04.00 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15635782.svg)](https://doi.org/10.5281/zenodo.15635782)
-- v3.02.02 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15635778.svg)](https://doi.org/10.5281/zenodo.15635778)
-- v3.02.00 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15635770.svg)](https://doi.org/10.5281/zenodo.15635770)
-- v3.00.06 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15635764.svg)](https://doi.org/10.5281/zenodo.15635764)
-- v3.00.04 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15635763.svg)](https://doi.org/10.5281/zenodo.15635763)
-- v3.00.02 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15635758.svg)](https://doi.org/10.5281/zenodo.15635758)
-- v3.00.00 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15635751.svg)](https://doi.org/10.5281/zenodo.15635751)
+On lxplus use `build_genie_lcg.sh` / `setup_lcg.sh` instead.
 
-## Physics & User manual
+Options (environment variables for the build scripts):
+`WITH_PYTHIA8=1` (Pythia8 hadronization), `WITH_APFEL=1` (needed only for the HEDIS model),
+`NJ=<n>` (parallel jobs); for LCG also `LCG_VERSION`, `LCG_PLATFORM`.
 
-For installation and usage information, as well as information on the GENIE framework, event generator modules and tuning, 
-see the [latest version of the GENIE Physics & User Manual](https://www.overleaf.com/read/rqmbqzzvsvmb#5ab475), originally published as arXiv:1510.05494.
+## macOS notes
 
-## Public releases and physics tunes
+The macOS build is native (Apple Silicon) and uses conda-forge's ROOT, LHAPDF, GSL,
+libxml2, log4cpp and compilers. The scripts handle a few pitfalls automatically:
 
-For a list of public releases and a summary information, see [this page](https://genie-mc.github.io/releases.html).
-A list of model configurations and tunes supported in each release is maintained [here](https://genie-mc.github.io/tunes.html).
-Details on the naming conventions for releases, model configurations and tunes can be found [here](https://genie-mc.github.io/naming_conventions.html).
+- **Matching clang:** clang is matched to the libc++ headers that ROOT pulls in; the
+  `compilers` metapackage would give an older clang.
+- **Two compiler workarounds** (also passed to `rootcling`):
+  - `-D_LIBCPP_DISABLE_AVAILABILITY`, which unblocks newer C++ library features;
+  - `-std=gnu++20`, needed for `NAN`/`INFINITY` with the macOS 27 SDK.
+- **Separate prefix for the externals:** Pythia6, TPythia6 and APFEL install into
+  `external/install/`, because GENIE's `make distclean` empties `install/`.
 
-[Recent publications and talks](https://genie-mc.github.io/pub.html) 
-by GENIE authors highlight key modeling advances and results from our global analysis of scattering data.
+Run the event-generation scripts with `source`, not `./`: macOS strips `DYLD_*`
+variables from `/bin/bash` scripts (the libraries have absolute install names, so
+this is only a precaution).
 
-## Contribution guidelines
+## Flux files
 
-**GENIE welcomes community contributions through its Incubator**. This is the designated space where all development work exceeding a certain complexity threshold is carried out. It is structured as a collection of focused incubator projects. Incubator projects are internal or community-led development efforts, overseen by the GENIE scientific and technical leadership. They represent the exclusive pathway for integrating physics or software developments into official GENIE product releases. For details, please visit [this page](https://genie-mc.github.io/incubator.html).
+The large Kling 2023 flux ntuples (`faser/Fluxes/Kling_2023/*.root`, up to 575 MB)
+are not in git; regenerate them with `faser/Fluxes/Kling_2023/getRawFluxes.sh` and
+`convertAllFluxes.sh`, or copy them from an existing installation.
 
-## Contact
+## Splines
 
-For all enquiries, please contact: <br />
-**Prof. Costas Andreopoulos** <br />
-University of Liverpool, Department of Physics, Oliver Lodge Lab 316,  Liverpool L69 7ZE, UK  <br />
-E-Mail: < c.andreopoulos \at cern.ch > <br />
-Telephone: +44 151 794 3201 (Office) | +44 754 084 7333 (Mobile)
+Splines are GENIE-version specific. The recipe is in `faser/Splines/`
+(`calcSplinesN.sh` → `mergeSplinesN.sh` → `calc*SplinesA.sh` → `mergeSplinesA.sh`);
+the run scripts expect `$GENIE_HOME/faser_xsec/faserSplines.7TeV.xml`.
