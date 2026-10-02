@@ -36,25 +36,35 @@ export GENIE_EXT_INSTALL="${GENIE_HOME}/external/install"   # LHAPDF, Pythia6, T
 export TPYTHIA6_PATH="${GENIE_EXT_INSTALL}"
 
 # --- ROOT --------------------------------------------------------------------
-# Already set up (root-config on PATH)?  Otherwise try ROOT_THISROOT, then the
-# usual places for a self-built ROOT.
-if ! command -v root-config >/dev/null 2>&1; then
+# Order: ROOT_THISROOT, a ROOT already set up from a self-built install, the newest
+# ~/ROOT/root_install*/bin/thisroot.sh, ~/root, /opt/root, /usr/local.
+# A snap ROOT (/snap/...) is only a last resort: it is confined and not meant to be
+# linked against, so a self-built ROOT found above always wins over it.
+_root_cfg="$(command -v root-config 2>/dev/null)"
+case "${_root_cfg}" in /snap/*) _root_cfg="";; esac
+if [ -n "${ROOT_THISROOT:-}" ] || [ -z "${_root_cfg}" ]; then
     for _f in "${ROOT_THISROOT:-}" \
               $(find "$HOME/ROOT" -maxdepth 3 -path "*/root_install*/bin/thisroot.sh" 2>/dev/null | sort -V -r) \
               "$HOME"/root/bin/thisroot.sh "$HOME"/root_install/bin/thisroot.sh \
               /opt/root/bin/thisroot.sh /usr/local/bin/thisroot.sh; do
         if [ -n "${_f}" ] && [ -f "${_f}" ]; then
+            unset ROOTSYS
             . "${_f}"; echo "setup_ubuntu.sh: ROOT from ${_f}"; break
         fi
     done
     unset _f
 fi
+unset _root_cfg
 if ! command -v root-config >/dev/null 2>&1; then
     echo "setup_ubuntu.sh: ERROR: ROOT not found. Source your thisroot.sh first, or"
     echo "                 export ROOT_THISROOT=/path/to/root/bin/thisroot.sh"
     return 1 2>/dev/null || exit 1
 fi
-export ROOTSYS="${ROOTSYS:-$(root-config --prefix)}"
+case "$(command -v root-config)" in
+    /snap/*) echo "setup_ubuntu.sh: WARNING: using the snap ROOT ($(command -v root-config)); GENIE may not link"
+             echo "                 against it -- build ROOT yourself or set ROOT_THISROOT";;
+esac
+export ROOTSYS="$(root-config --prefix)"
 
 # --- system libraries (apt) -----------------------------------------------------
 _multiarch="$(gcc -print-multiarch 2>/dev/null)"; _multiarch="${_multiarch:-x86_64-linux-gnu}"

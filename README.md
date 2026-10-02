@@ -80,9 +80,9 @@ sudo apt install build-essential gfortran cmake libxml2-dev libgsl-dev liblog4cp
 source setup.sh
 ```
 
-- **ROOT**: taken from the PATH if `root-config` is already there; otherwise
-  `ROOT_THISROOT=/path/bin/thisroot.sh`, otherwise the newest `~/ROOT/root_install*/bin/thisroot.sh`,
-  then `~/root`, `/opt/root`, `/usr/local`. It must have been built with `geom` and `mathmore`
+- **ROOT**: `ROOT_THISROOT=/path/bin/thisroot.sh` if set; else a self-built ROOT already on the PATH; otherwise
+  the newest `~/ROOT/root_install*/bin/thisroot.sh`,
+  then `~/root`, `/opt/root`, `/usr/local`. A snap ROOT (`/snap/...`) is used only if nothing else is found. It must have been built with `geom` and `mathmore`
   (the build script checks for `libGeom`, `libMathMore`, `libEG`). Any ROOT 6.26+ works; TPythia6 is
   built separately, so ROOT ≥ 6.32 is fine.
 - **LHAPDF 6**: a system `lhapdf-config` is used if present; otherwise LHAPDF 6.5.4 is built into
