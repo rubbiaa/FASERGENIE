@@ -22,7 +22,8 @@ their helpers are in `GenieGenerator/faser/build/external/`.
 | file | purpose |
 |---|---|
 | `setup.sh` | **one entry point**: detects the site (macOS / Ubuntu / EL9+CVMFS) and sources the matching `setup_*.sh`, then prints a sanity check; override with `GENIE_SITE=mac\|lcg\|ubuntu` |
-| `build.sh` | same detection, runs the matching `build_genie_*.sh` |
+| `build.sh` | same detection, runs `check_requirements.sh` and then the matching `build_genie_*.sh` |
+| `check_requirements.sh` | lists, for this platform, every external piece: what you must install (`[MISSING]`), what `build.sh` will build (`[TO BUILD]`), and the splines/fluxes/geometry needed to run (`[RUN]`) |
 | `build_genie_mac.sh` | one-time build on macOS (conda-forge env in `~/miniforge3/envs/genie`) |
 | `setup_mac.sh` | environment for every new terminal on macOS (zsh or bash) |
 | `build_genie_lcg.sh` | one-time build on EL9 from a plain LCG view (`LCG_107` by default) |
@@ -57,6 +58,7 @@ GENIE3.06/                    <- this repository = work directory (GENIE_HOME)
 ```bash
 git clone https://github.com/rubbiaa/GENIE.git GENIE3.06
 cd GENIE3.06
+./check_requirements.sh                              # optional: what is there, what is missing
 ./build.sh                                           # ~20 min the first time
 source setup.sh                                      # every new terminal
 ```
