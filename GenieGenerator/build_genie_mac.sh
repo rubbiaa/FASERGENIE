@@ -20,10 +20,13 @@
 set -euo pipefail
 _genie_here="${BASH_SOURCE[0]}"
 _genie_real="$(readlink -f "${_genie_here}" 2>/dev/null || echo "${_genie_here}")"
-SCRIPTS="$( cd "$( dirname "${_genie_real}" )" >/dev/null 2>&1 && pwd )"   # this script + external/
-if [ -d "${SCRIPTS}/GenieGenerator/src" ]; then WORK="${SCRIPTS}"            # work-area layout
-else WORK="$( cd "${SCRIPTS}/../../.." >/dev/null 2>&1 && pwd )"; fi       # <work>/GenieGenerator/faser/build
-EXT="${SCRIPTS}/external"
+SCRIPTS="$( cd "$( dirname "${_genie_real}" )" >/dev/null 2>&1 && pwd )"   # this script + setup_*.sh
+if [ -d "${SCRIPTS}/src/make" ]; then                                      # repository top directory
+    WORK="$( dirname "${SCRIPTS}" )"; EXT="${SCRIPTS}/faser/build/external"
+else                                                                       # work area with GenieGenerator/
+    WORK="${SCRIPTS}"; EXT="${SCRIPTS}/GenieGenerator/faser/build/external"
+    [ -d "${EXT}" ] || EXT="${SCRIPTS}/external"                            # old 3.04 layout
+fi
 DL="${WORK}/external/downloads"
 BLD_DIR="${WORK}/build"   # not $BUILD: conda activation overwrites that
 NJ=${NJ:-$(sysctl -n hw.ncpu)}

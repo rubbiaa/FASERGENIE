@@ -5,15 +5,18 @@ optionally APFEL and Pythia8) natively, either on macOS/Apple Silicon or on any
 EL9 machine with CVMFS (e.g. lxplus). They replace the old
 `ATLAS_container.sh` / `asetup` / `setupGenerator.sh` / `buildGenerator.sh` chain.
 
+The four scripts are in the top directory of the repository; the helpers live here
+in `faser/build/`.
+
 | file | purpose |
 |---|---|
 | `build_genie_mac.sh` | one-time build on macOS (conda-forge env in `~/miniforge3/envs/genie`) |
 | `setup_mac.sh` | environment for every new terminal on macOS (zsh or bash) |
 | `build_genie_lcg.sh` | one-time build on EL9 from a plain LCG view (`LCG_107` by default) |
 | `setup_lcg.sh` | environment for every new shell on EL9 |
-| `external/patch_genie_make.sh` | idempotent fixes to `src/make/Make.include` (Apple Silicon flags, Pythia6 link line) |
-| `external/pythia6/CMakeLists.txt` | builds Pythia 6.4.28 + ROOT interface as one shared library |
-| `../TPythia6_standalone/` | plain-CMake build of ROOT's old TPythia6 classes (`libEGPythia6`) |
+| `faser/build/external/patch_genie_make.sh` | idempotent fixes to `src/make/Make.include` (Apple Silicon flags, Pythia6 link line) |
+| `faser/build/external/pythia6/CMakeLists.txt` | builds Pythia 6.4.28 + ROOT interface as one shared library |
+| `faser/TPythia6_standalone/` | plain-CMake build of ROOT's old TPythia6 classes (`libEGPythia6`) |
 
 ## Layout
 
@@ -24,7 +27,8 @@ never into the repository:
 ```
 GENIE3.06/                    <- work directory (GENIE_HOME)
 ├── GenieGenerator/           <- this repository (GENIE)
-│   └── faser/build/          <- these scripts
+│   ├── setup_mac.sh  build_genie_mac.sh  setup_lcg.sh  build_genie_lcg.sh
+│   └── faser/build/          <- helpers + this README
 ├── install/  build/          <- created by the build script
 ├── external/downloads/       <- cached source tarballs
 ├── faser_xsec/               <- cross-section splines (make or copy them here)
@@ -35,10 +39,9 @@ GENIE3.06/                    <- work directory (GENIE_HOME)
 
 ```bash
 mkdir GENIE3.06 && cd GENIE3.06
-git clone -b faser-R-3_06_02 https://github.com/rubbiaa/GENIE.git GenieGenerator
-ln -s GenieGenerator/faser/build/setup_mac.sh .      # optional convenience link
-GenieGenerator/faser/build/build_genie_mac.sh        # ~20 min the first time
-source setup_mac.sh                                  # every new terminal
+git clone https://github.com/rubbiaa/GENIE.git GenieGenerator
+GenieGenerator/build_genie_mac.sh                    # ~20 min the first time
+source GenieGenerator/setup_mac.sh                   # every new terminal
 ```
 
 On lxplus use `build_genie_lcg.sh` / `setup_lcg.sh` instead.

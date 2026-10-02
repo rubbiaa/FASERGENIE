@@ -25,18 +25,17 @@ export ROOTSYS="${ROOTSYS:-$(root-config --prefix)}"   # GENIE's configure insis
 # --- GENIE locations ---------------------------------------------------------
 _genie_here="${BASH_SOURCE[0]}"
 # --- locate the GENIE source tree --------------------------------------------
-# Works both when this script sits next to GenieGenerator/ (work-area layout)
-# and when it lives inside the repository at GenieGenerator/faser/build/.
+# Normally this script sits in the top directory of the GENIE repository; it also
+# works from a work area that contains GenieGenerator/ (e.g. through a symlink).
 _genie_real="$(readlink -f "${_genie_here}" 2>/dev/null || echo "${_genie_here}")"
 _genie_dir="$( cd "$( dirname "${_genie_real}" )" >/dev/null 2>&1 && pwd )"
-if [ -d "${_genie_dir}/GenieGenerator/src" ]; then
-    _genie_src="${_genie_dir}/GenieGenerator"
+if [ -d "${_genie_dir}/src/make" ]; then
+    _genie_src="${_genie_dir}"                          # repository top directory
 else
-    _genie_src="$( cd "${_genie_dir}/../.." >/dev/null 2>&1 && pwd )"
+    _genie_src="${_genie_dir}/GenieGenerator"           # work-area layout
 fi
 export GENIE="${_genie_src}"                          # GENIE source tree
 export GENIE_HOME="$( dirname "${GENIE}" )"           # work area: install/, build/, run/, faser_xsec/
-export GENIE_SCRIPTS="${_genie_dir}"                  # where these scripts (and external/) live
 unset _genie_here _genie_real _genie_dir _genie_src
 export GENIE_INSTALL="${GENIE_HOME}/install"          # bin/ lib/ include/ of GENIE + TPythia6
 export TPYTHIA6_PATH="${GENIE_INSTALL}"

@@ -11,9 +11,13 @@
 set -euo pipefail
 _genie_here="${BASH_SOURCE[0]}"
 _genie_real="$(readlink -f "${_genie_here}" 2>/dev/null || echo "${_genie_here}")"
-SCRIPTS="$( cd "$( dirname "${_genie_real}" )" >/dev/null 2>&1 && pwd )"   # this script + external/
-if [ -d "${SCRIPTS}/GenieGenerator/src" ]; then WORK="${SCRIPTS}"            # work-area layout
-else WORK="$( cd "${SCRIPTS}/../../.." >/dev/null 2>&1 && pwd )"; fi       # <work>/GenieGenerator/faser/build
+SCRIPTS="$( cd "$( dirname "${_genie_real}" )" >/dev/null 2>&1 && pwd )"   # this script + setup_*.sh
+if [ -d "${SCRIPTS}/src/make" ]; then                                      # repository top directory
+    WORK="$( dirname "${SCRIPTS}" )"; EXT="${SCRIPTS}/faser/build/external"
+else                                                                       # work area with GenieGenerator/
+    WORK="${SCRIPTS}"; EXT="${SCRIPTS}/GenieGenerator/faser/build/external"
+    [ -d "${EXT}" ] || EXT="${SCRIPTS}/external"                            # old 3.04 layout
+fi
 
 set +u; source "${SCRIPTS}/setup_lcg.sh"; set -u
 NJ=${NJ:-$(nproc)}
@@ -41,7 +45,7 @@ provide_libPythia6 "${PYTHIA6_LIB}/libpythia6.so"
 
 # ---- 2) GENIE ---------------------------------------------------------------
 echo "=== Configuring GENIE"
-bash "${SCRIPTS}/external/patch_genie_make.sh" "${GENIE}"
+bash "${EXT}/patch_genie_make.sh" "${GENIE}"
 mkdir -p "${GENIE_INSTALL}"/{bin,lib,include}
 cd "${GENIE}"
 [ -f src/make/Make.config ] && make distclean >/dev/null 2>&1 || true

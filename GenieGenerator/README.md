@@ -1,3 +1,7 @@
+> **FASER fork of GENIE 3.06.02.** Native build without the ATLAS container:
+> `./build_genie_mac.sh` (macOS) or `./build_genie_lcg.sh` (EL9 + CVMFS), then
+> `source setup_mac.sh` / `source setup_lcg.sh`. Details: [faser/build/README.md](faser/build/README.md).
+
 # The GENIE Event Generator
 
 
