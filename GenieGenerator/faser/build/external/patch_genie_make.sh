@@ -59,7 +59,7 @@ ifdef GENIE_CXX
 endif
 CXXFLAGS      = -pipe -W -Wall -Wshadow -Woverloaded-virtual \
                 -fsigned-char -fno-common -Wno-strict-aliasing \
-                $(ROOT_FLAGS) \
+                $(subst -std=c++,-std=gnu++,$(ROOT_FLAGS)) \
                 $(GOPT_WITH_CXX_DEBUG_FLAG) \
                 $(GOPT_WITH_CXX_OPTIMIZ_FLAG) \
                 $(GOPT_WITH_CXX_USERDEF_FLAGS)
@@ -88,3 +88,20 @@ open(p, "w").write(s)
 PYEOF
   echo "patched: macosxarm64 support"
 fi
+
+# --- 3) macosxarm64 block: GNU C++ dialect --------------------------------------
+# With strict -std=c++NN, clang 20's <float.h> does not define NAN/INFINITY, and the
+# macOS 27 SDK <math.h> relies on <float.h> for them ("undeclared identifier NAN"
+# in <complex>).  Use -std=gnu++NN (same standard as ROOT, GNU extensions on).
+python3 - "${MK}" <<'PYEOF'
+import sys
+p = sys.argv[1]; s = open(p).read()
+i = s.find('[added by patch_genie_make.sh]')
+if i >= 0:
+    j = s.find('EXTRALIBS', i)
+    blk = s[i:j]
+    new = blk.replace('                $(ROOT_FLAGS) \\', '                $(subst -std=c++,-std=gnu++,$(ROOT_FLAGS)) \\')
+    if new != blk:
+        open(p, 'w').write(s[:i] + new + s[j:])
+        print("patched: macosxarm64 block uses -std=gnu++")
+PYEOF
