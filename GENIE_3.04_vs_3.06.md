@@ -97,3 +97,7 @@ The FASER fork consists of 43 commits by Dave Casper. Everything outside `faser/
      so the external libraries are installed elsewhere.
    - **TPythia6 link path:** 3.06 links its libraries with `$(ROOT_LIBRARIES)`, which contains
      `-lEGPythia6` without its path; the `Make.include` patch adds it.
+5. **Geometry units with newer ROOT (fixed).** The FASER apps assume TGeo lengths in mm. That was
+   the TGeo default in ROOT 6.16–6.24 (used for the 3.04 production). Newer ROOT defaults to cm, so
+   with ROOT 6.40 the detector came out 10× too small: about 50× fewer events and a spectrum biased
+   to high energies. `FaserROOTGeomAnalyzer` now forces mm units (`kG4Units`).
