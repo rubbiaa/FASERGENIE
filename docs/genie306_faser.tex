@@ -84,11 +84,11 @@
     \toprule
     Dependency & Role & Source in the new build \\
     \midrule
-    ROOT (with Geom) & I/O, geometry (TGeo), maths & conda-forge / LCG view \\
+    ROOT (Geom, MathMore) & I/O, geometry (TGeo), maths & conda-forge / LCG / own build \\
     Pythia 6.4.28 & hadronization, decays & built from \code{alisw/pythia6} \\
     TPythia6 (\code{libEGPythia6}) & ROOT interface to Pythia6 & built here (plain CMake) \\
-    LHAPDF 6 & PDFs & conda-forge / LCG \\
-    GSL, libxml2, log4cpp & numerics, config, logging & conda-forge / LCG \\
+    LHAPDF 6 & PDFs & conda-forge / LCG / built here \\
+    GSL, libxml2, log4cpp & numerics, config, logging & conda-forge / LCG / apt \\
     \midrule
     \emph{optional:} APFEL 3.0.6 & HEDIS structure functions & \code{WITH\_APFEL=1} \\
     \emph{optional:} Pythia 8 & Pythia8 hadronization & \code{WITH\_PYTHIA8=1} \\
@@ -106,23 +106,26 @@
 \begin{frame}{Overview}
   \centering
   \begin{tikzpicture}[
-      box/.style={draw, rounded corners=2pt, align=center, font=\small, minimum height=9mm, fill=white, text width=46mm},
+      box/.style={draw, rounded corners=2pt, align=center, font=\footnotesize, minimum height=8mm, fill=white, text width=35mm, inner sep=2pt},
       dep/.style={box, fill=soft},
       arr/.style={-{Latex[length=2mm]}, thick, accent}]
-    \node[box, fill=accent!15, text width=60mm] (repo) at (0,0) {\textbf{github.com/rubbiaa/GENIE}\\ \footnotesize source + FASER code + scripts};
-    \node[box] (mac) at (-3.4,-1.45) {\code{build\_genie\_mac.sh}\\ \footnotesize macOS (Apple Silicon)};
-    \node[box] (lcg) at ( 3.4,-1.45) {\code{build\_genie\_lcg.sh}\\ \footnotesize EL9 + CVMFS (lxplus)};
-    \node[dep] (conda) at (-3.4,-2.9) {conda-forge env\\ \footnotesize ROOT, LHAPDF, GSL, clang, \dots};
-    \node[dep] (view)  at ( 3.4,-2.9) {LCG view (LCG\_107)\\ \footnotesize same packages, one compiler};
-    \node[box, text width=60mm] (ext) at (0,-4.5) {Pythia6 $\rightarrow$ TPythia6 $\rightarrow$ (APFEL)\quad \footnotesize\code{external/install/}};
-    \node[box, fill=new!15, text width=60mm] (genie) at (0,-5.7) {GENIE \code{-{}-enable-faser}\quad \footnotesize\code{install/}: \code{gevgen\_faser}, \code{gmkspl\_faser}};
-    \draw[arr] (repo) -- (mac);  \draw[arr] (repo) -- (lcg);
-    \draw[arr] (mac) -- (conda); \draw[arr] (lcg) -- (view);
-    \draw[arr] (conda) -- (ext); \draw[arr] (view) -- (ext);
+    \node[box, fill=accent!15, text width=100mm] (repo) at (0,0) {\textbf{github.com/rubbiaa/GENIE}: source + FASER code + scripts\\
+         \scriptsize\code{check\_requirements.sh} $\rightarrow$ \code{build.sh} $\rightarrow$ \code{setup.sh}\quad (site detected automatically)};
+    \node[box] (mac) at (-3.9,-1.35) {{\scriptsize\code{build\_genie\_mac.sh}}\\ macOS (Apple Silicon)};
+    \node[box] (ubu) at ( 0.0,-1.35) {{\scriptsize\code{build\_genie\_ubuntu.sh}}\\ plain Ubuntu / Debian};
+    \node[box] (lcg) at ( 3.9,-1.35) {{\scriptsize\code{build\_genie\_lcg.sh}}\\ EL9 + CVMFS (lxplus)};
+    \node[dep] (conda) at (-3.9,-2.6) {conda-forge env\\ \scriptsize ROOT, LHAPDF, clang, \dots};
+    \node[dep] (apt)   at ( 0.0,-2.6) {own ROOT + apt\\ \scriptsize GSL, libxml2, log4cpp};
+    \node[dep] (view)  at ( 3.9,-2.6) {LCG view (LCG\_107)\\ \scriptsize one compiler for all};
+    \node[box, text width=100mm] (ext) at (0,-3.8) {(LHAPDF) $\rightarrow$ Pythia6 $\rightarrow$ TPythia6 $\rightarrow$ (APFEL)\quad \footnotesize\code{external/install/}};
+    \node[box, fill=new!15, text width=100mm] (genie) at (0,-4.8) {GENIE \code{-{}-enable-faser}\quad \footnotesize\code{install/}: \code{gevgen\_faser}, \code{gmkspl\_faser}};
+    \draw[arr] (repo) -- (mac);  \draw[arr] (repo) -- (ubu);  \draw[arr] (repo) -- (lcg);
+    \draw[arr] (mac) -- (conda); \draw[arr] (ubu) -- (apt);   \draw[arr] (lcg) -- (view);
+    \draw[arr] (conda) -- (ext); \draw[arr] (apt) -- (ext);   \draw[arr] (view) -- (ext);
     \draw[arr] (ext) -- (genie);
   \end{tikzpicture}
 
-  \vspace{-2pt}\small No container, no Athena, no \code{asetup}. The same scripts work on both platforms.
+  \vspace{-2pt}\small No container, no Athena, no \code{asetup}. The same commands on all three platforms.
 \end{frame}
 
 \begin{frame}[fragile]{Repository = work directory}
@@ -132,8 +135,10 @@
 GENIE3.06/                  <- git repository
 |-- README.md
 |-- GENIE_3.04_vs_3.06.md
-|-- setup_mac.sh   build_genie_mac.sh
-|-- setup_lcg.sh   build_genie_lcg.sh
+|-- check_requirements.sh
+|-- setup.sh   build.sh     <- pick the site
+|-- setup_{mac,lcg,ubuntu}.sh
+|-- build_genie_{mac,lcg,ubuntu}.sh
 |-- GenieGenerator/         <- GENIE 3.06.02 + FASER
 |   |-- src/  config/  data/
 |   |-- faser/   (geometries, fluxes, scripts)
@@ -156,12 +161,50 @@ GENIE3.06/                  <- git repository
   \end{columns}
 \end{frame}
 
+\begin{frame}[fragile]{Checking the requirements first}
+  \begin{columns}[T]
+    \column{0.55\textwidth}
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize]
+$ ./check_requirements.sh
+site = ubuntu
+== 1) platform prerequisites
+ [ok]       libgsl-dev     2.7.1
+ [MISSING]  liblog4cpp5-dev  apt ...
+== 3) compilers, ROOT, libraries
+ [ok]       ROOT           6.32.02
+ [MISSING]   libMathMore   rebuild ROOT
+ [TO BUILD] LHAPDF6 lib    external/
+== 4) built by build.sh
+ [TO BUILD] TPythia6       libEGPythia6
+ [TO BUILD] gevgen_faser   install/bin
+== 5) inputs for running
+ [RUN]      splines        faser_xsec/
+RESULT: 2 prerequisite(s) MISSING
+\end{lstlisting}
+    \column{0.42\textwidth}
+    \footnotesize
+    \textbf{Per platform}, it checks:
+    \begin{enumerate}\setlength{\itemsep}{1pt}
+      \item what you must provide: Xcode + conda env / LCG view / apt packages
+      \item that \code{setup\_<site>.sh} loads
+      \item compilers, ROOT (Geom, MathMore, EG), libxml2, log4cpp, LHAPDF\,6
+      \item Pythia6, TPythia6, APFEL, Pythia8, GENIE
+      \item splines, fluxes, geometry
+    \end{enumerate}
+    \textbf{Status:} \code{[MISSING]} install it,
+    \code{[TO BUILD]} \code{build.sh} makes it, \code{[RUN]} only to run.\\[3pt]
+    \textbf{Exit code} 0 ready, 1 missing, 2 build, 3 run inputs.
+    \code{build.sh} runs it first and stops on~1.
+  \end{columns}
+\end{frame}
+
 \begin{frame}[fragile]{Building on a Mac}
 \begin{lstlisting}
 git clone https://github.com/rubbiaa/GENIE.git GENIE3.06
 cd GENIE3.06
-./build_genie_mac.sh          # first time ~20 min
-source setup_mac.sh           # every new terminal (zsh or bash)
+./check_requirements.sh       # what is there, what is missing
+./build.sh                    # = build_genie_mac.sh, first time ~20 min
+source setup.sh               # = setup_mac.sh, every new terminal
 \end{lstlisting}
   \vspace{0.5em}
   What the script does:
@@ -189,6 +232,25 @@ source setup_lcg.sh
     \item \code{setup\_lcg.sh} replaces \code{ATLAS\_container.sh}, \code{.asetup.save},
           \code{kk} and \code{setupGenerator.sh}
     \item Only TPythia6 and GENIE are compiled locally
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Building on a plain Ubuntu machine}
+\begin{lstlisting}
+sudo apt install build-essential gfortran cmake libxml2-dev \
+                 libgsl-dev liblog4cpp5-dev curl
+git clone https://github.com/rubbiaa/GENIE.git GENIE3.06 && cd GENIE3.06
+./check_requirements.sh                   # what is there, what is missing
+./build.sh                                # = build_genie_ubuntu.sh
+source setup.sh                           # = setup_ubuntu.sh
+\end{lstlisting}
+  \vspace{0.5em}
+  \begin{itemize}\small
+    \item No conda, no CVMFS: your own ROOT (\code{ROOT\_THISROOT}, else newest
+          \code{\textasciitilde/ROOT/root\_install*}; a snap ROOT only as last resort)
+    \item ROOT must have \code{geom} and \code{mathmore}: install \code{libgsl-dev} \emph{before} building ROOT
+    \item LHAPDF\,6 from the system if present, otherwise built into \code{external/install/}
+    \item Pythia8 found as \code{\textasciitilde/ROOT/pythia8*} or \code{PYTHIA8=\dots}; used with \code{WITH\_PYTHIA8=1}
   \end{itemize}
 \end{frame}
 
@@ -360,7 +422,7 @@ source setup_lcg.sh
 \begin{frame}[fragile]{Backup: command cheat sheet}
 \begin{lstlisting}
 # environment
-source setup_mac.sh                      # or setup_lcg.sh on lxplus
+source setup.sh                          # mac, lxplus or ubuntu: detected
 
 # incremental rebuild after a code change
 cd GenieGenerator && make -j && make install && cd ..
