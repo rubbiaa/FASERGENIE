@@ -14,3 +14,10 @@ src/Framework/Conventions/GVersion.h
 *.rootmap
 *_ROOT_DICT_*
 *.swp
+# --- FASER fork additions
+src/make/Make.include.orig
+*.o.tmp
+*_dictUmbrella.h
+*_dictContent.h
+# large flux ntuples: regenerate with faser/Fluxes/Kling_2023/getRawFluxes.sh + convertAllFluxes.sh
+faser/Fluxes/Kling_2023/*.root

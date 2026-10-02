@@ -1,0 +1,73 @@
+#!/bin/bash
+# -----------------------------------------------------------------------------
+# build_genie_lcg.sh -- build TPythia6 + GENIE (FASER fork, 3.04 or 3.06) against an LCG view
+#
+# Replaces: the build part of setupGenerator.sh + faser/buildGenerator.sh
+# Usage:    ./build_genie_lcg.sh          (uses LCG_VERSION / LCG_PLATFORM if set)
+#           WITH_PYTHIA8=1 WITH_APFEL=1 ./build_genie_lcg.sh   (both default to 0;
+#           APFEL is only needed for the HEDIS model, Pythia8 for Pythia8Hadro2019)
+# Result:   install/{bin,lib,include}   (old run/ and run_3_04/ are not touched)
+# -----------------------------------------------------------------------------
+set -euo pipefail
+_genie_here="${BASH_SOURCE[0]}"
+_genie_real="$(readlink -f "${_genie_here}" 2>/dev/null || echo "${_genie_here}")"
+SCRIPTS="$( cd "$( dirname "${_genie_real}" )" >/dev/null 2>&1 && pwd )"   # this script + external/
+if [ -d "${SCRIPTS}/GenieGenerator/src" ]; then WORK="${SCRIPTS}"            # work-area layout
+else WORK="$( cd "${SCRIPTS}/../../.." >/dev/null 2>&1 && pwd )"; fi       # <work>/GenieGenerator/faser/build
+
+set +u; source "${SCRIPTS}/setup_lcg.sh"; set -u
+NJ=${NJ:-$(nproc)}
+WITH_APFEL=${WITH_APFEL:-0}
+WITH_PYTHIA8=${WITH_PYTHIA8:-0}
+
+# ---- 1) TPythia6 -> install/lib/libEGPythia6.so -----------------------------
+echo "=== Building TPythia6"
+rm -rf "${WORK}/build/TPythia6"
+cmake -S "${GENIE}/faser/TPythia6_standalone" -B "${WORK}/build/TPythia6" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX="${TPYTHIA6_PATH}" \
+      -DPYTHIA6_LIB="${PYTHIA6_LIB}"
+cmake --build   "${WORK}/build/TPythia6" -j "${NJ}"
+cmake --install "${WORK}/build/TPythia6"
+
+# GENIE >= 3.06 links "-lPythia6" (ROOT's historical name for the library).
+# Provide that name next to libEGPythia6 unless it already resolves (on the default
+# case-insensitive macOS filesystem libpythia6.dylib already matches).
+provide_libPythia6() {   # $1 = the real Pythia6 shared library
+    local dst="${GENIE_INSTALL}/lib/libPythia6.${1##*.}"
+    [ -e "${dst}" ] || ln -s "$1" "${dst}"
+}
+provide_libPythia6 "${PYTHIA6_LIB}/libpythia6.so"
+
+# ---- 2) GENIE ---------------------------------------------------------------
+echo "=== Configuring GENIE"
+bash "${SCRIPTS}/external/patch_genie_make.sh" "${GENIE}"
+mkdir -p "${GENIE_INSTALL}"/{bin,lib,include}
+cd "${GENIE}"
+[ -f src/make/Make.config ] && make distclean >/dev/null 2>&1 || true
+
+GENIE_OPTS=(
+    --prefix="${GENIE_INSTALL}"
+    --enable-faser
+    --enable-lhapdf6 --disable-lhapdf5
+    --with-lhapdf6-lib="${LHAPDF6_LIB}" --with-lhapdf6-inc="${LHAPDF6_INC}"
+    --with-pythia6-lib="${PYTHIA6_LIB}"
+    --with-libxml2-lib="${LIBXML2_LIB}" --with-libxml2-inc="${LIBXML2_INC}"
+    --with-log4cpp-lib="${LOG4CPP_LIB}" --with-log4cpp-inc="${LOG4CPP_INC}"
+)
+if [ "${WITH_APFEL}" = 1 ]; then
+    GENIE_OPTS+=(--enable-apfel --with-apfel-lib="${APFEL_LIB}" --with-apfel-inc="${APFEL_INC}")
+else
+    GENIE_OPTS+=(--disable-apfel)
+fi
+if [ "${WITH_PYTHIA8}" = 1 ]; then
+    GENIE_OPTS+=(--enable-pythia8 --with-pythia8-lib="${PYTHIA8_LIB}" --with-pythia8-inc="${PYTHIA8_INC}")
+fi
+./configure "${GENIE_OPTS[@]}"
+
+echo "=== Building GENIE (-j${NJ})"
+make -j"${NJ}"
+make install
+
+echo
+echo "Done. In a new shell:   source ${SCRIPTS}/setup_lcg.sh   then e.g.  gevgen_faser --help"
