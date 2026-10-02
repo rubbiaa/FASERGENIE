@@ -34,4 +34,7 @@
 #pragma link C++ class genie::GSimFiles;
 #pragma link C++ class genie::utils::T2KEvGenMetaData;
 
+#pragma link C++ function genie::utils::print::PrintBanner(void);
+#pragma link C++ function genie::utils::print::PrintBanner(string, UInt_t);
+
 #endif

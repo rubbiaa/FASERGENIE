@@ -38,6 +38,8 @@ public:
   int NElements(int Z) const;
   const NaturalIsotopeElementData * ElementData (int Z, int ielement) const;
   const NaturalIsotopeElementData * ElementDataPdg (int Z, int pdgcode) const;
+  // FASER: look up an isotope directly by its ion PDG code (nullptr if unknown)
+  static const NaturalIsotopeElementData * GetIsotopeData(int pdgc);
 
 private:
   NaturalIsotopes();

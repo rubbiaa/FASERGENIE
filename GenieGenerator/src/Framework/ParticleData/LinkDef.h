@@ -15,4 +15,6 @@
 #pragma link C++ class genie::NaturalIsotopeElementData;
 #pragma link C++ class genie::NaturalIsotopes;
 
+#pragma link c++ function genie::PDGLibrary::Instance(void);
+
 #endif

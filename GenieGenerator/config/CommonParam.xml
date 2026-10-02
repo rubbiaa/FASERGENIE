@@ -326,7 +326,7 @@ Or changing the name of this parameter set
 	GENIE validity range
     -->
     <param type="double" name="GVLD-Emin">    0.010  </param>
-    <param type="double" name="GVLD-Emax"> 1000.000  </param>
+    <param type="double" name="GVLD-Emax"> 7000.000  </param> <!-- FASER: 7 TeV (was 1 TeV) -->
 
   </param_set>
 

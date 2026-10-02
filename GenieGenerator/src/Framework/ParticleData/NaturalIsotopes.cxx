@@ -18,6 +18,7 @@
 
 #include "Framework/Messenger/Messenger.h"
 #include "Framework/ParticleData/NaturalIsotopes.h"
+#include "Framework/ParticleData/PDGUtils.h"
 
 using std::string;
 using std::cout;
@@ -196,3 +197,16 @@ bool NaturalIsotopes::LoadTable(void)
   return true;
 }
 //____________________________________________________________________________
+//____________________________________________________________________________
+const NaturalIsotopeElementData* NaturalIsotopes::GetIsotopeData(int pdgc)
+{
+// FASER addition (ported from faser-R-3_04_00)
+  int Z = pdg::IonPdgCodeToZ(pdgc);
+  NaturalIsotopes * table = NaturalIsotopes::Instance();
+  int nIsotopes = table->NElements(Z);
+  for (int i = 0; i < nIsotopes; i++) {
+    const NaturalIsotopeElementData* data = table->ElementData(Z, i);
+    if (data && data->PdgCode() == pdgc) return data;
+  }
+  return nullptr;
+}
