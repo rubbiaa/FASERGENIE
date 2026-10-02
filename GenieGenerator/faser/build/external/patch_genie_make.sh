@@ -1,7 +1,7 @@
 #!/bin/bash
 # -----------------------------------------------------------------------------
 # patch_genie_make.sh -- small, idempotent fixes to GENIE 3.04.00 src/make/Make.include
-#   1) Pythia6 link line used undefined variables (PYTHIA_DIR/PYTHIA_O/PYTHIA_LIBRARIES
+#   1) (3.04) Pythia6 link line used undefined variables (PYTHIA_DIR/PYTHIA_O/PYTHIA_LIBRARIES
 #      vs PYTHIA6_*), so -lpythia6 was never actually on the link line.
 #   2) Apple Silicon: root-config --arch is "macosxarm64".  GENIE 3.04.00 does not
 #      know it at all; GENIE 3.06 lumps it with macosx64, whose flags are from the
@@ -23,6 +23,13 @@ if grep -q '^PYTHIA_LIBRARIES' "${MK}"; then
     -e 's/^PYTHIA_LIBRARIES  = -L\$(PYTHIA_DIR) -lpythia6 *$/PYTHIA6_LIBRARIES = -L$(PYTHIA6_DIR) -lpythia6/' \
     "${MK}" && rm -f "${MK}.bak"
   echo "patched: Pythia6 link variables"
+fi
+
+# --- 1b) GENIE >= 3.06: libraries link $(ROOT_LIBRARIES), which contains -lEGPythia6,
+#         without $(SYSLIBS); add the TPythia6 library directory to that flag.
+if grep -q '^PY6ROOT_LIBRARY = -lEGPythia6' "${MK}"; then
+  sed -i.bak 's/^PY6ROOT_LIBRARY = -lEGPythia6/PY6ROOT_LIBRARY = $(SYSLIBS) -lEGPythia6/' "${MK}" && rm -f "${MK}.bak"
+  echo "patched: -lEGPythia6 gets the TPythia6 library path"
 fi
 
 # --- 2) macosxarm64 architecture block ---------------------------------------

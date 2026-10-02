@@ -67,7 +67,11 @@ export GENIE_CC="${CC:-clang}"
 # drop -dead_strip_dylibs: GENIE links with -undefined dynamic_lookup, so "unused"
 # dylibs (e.g. libEGPythia6) would otherwise be stripped and fail at run time
 export GENIE_LDFLAGS="$(echo "${LDFLAGS:-}" | sed 's/-Wl,-dead_strip_dylibs//g')"
-export ENV_CXXFLAGS="${CXXFLAGS:-}"
+# -D_LIBCPP_DISABLE_AVAILABILITY: conda-forge targets macOS 11.0 and its libc++ headers
+# mark newer C++ features (e.g. <charconv> pulled in by ROOT under C++20) as unavailable;
+# safe here because the env ships its own modern libc++ (conda-forge knowledge base,
+# "Newer C++ features with old SDK").
+export ENV_CXXFLAGS="${CXXFLAGS:-} -D_LIBCPP_DISABLE_AVAILABILITY"
 
 # --- PDFs: GENIE ships its own LHAPDF sets ----------------------------------
 export LHAPATH="${GENIE}/data/evgen/pdfs"
