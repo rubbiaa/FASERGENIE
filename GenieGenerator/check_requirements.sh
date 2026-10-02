@@ -115,7 +115,7 @@ ubuntu)
         else miss "${pkg}" "sudo apt install ${pkg}"; fi
     done
     if grep -qsE 'throw *\(std::invalid_argument\)' /usr/local/include/log4cpp/Priority.hh; then
-        warn "old log4cpp" "/usr/local/include/log4cpp is log4cpp 1.0 (not C++17): GENIE must not see /usr/local/include"
+        warn "old log4cpp" "/usr/local/include/log4cpp is log4cpp 1.0 (not C++17); gcc searches it before /usr/include, so setup_ubuntu.sh uses a shim"
     fi
     ;;
 esac
@@ -164,9 +164,9 @@ if [ "${can_setup}" = 1 ]; then
     chk_lib  "libxml2 lib" "${LIBXML2_LIB:-}" xml2
     chk_file "log4cpp inc" "${LOG4CPP_INC:-}/log4cpp/Category.hh"
     if [ "${GENIE_OLD_LOG4CPP_USRLOCAL:-0}" = 1 ]; then
-        case " ${LHAPDF6_INC:-} ${PYTHIA8_INC:-} ${APFEL_INC:-} " in
-            *" /usr/local/include "*) miss "include path" "a dependency uses /usr/local/include, where the old log4cpp shadows the apt one: move /usr/local/include/log4cpp away";;
-            *) ok "include path" "/usr/local/include not used (old log4cpp there is avoided)";;
+        case "${LOG4CPP_INC:-}" in
+            /usr/include|/usr/local/include|"") miss "log4cpp shim" "old log4cpp in /usr/local/include would be used: move /usr/local/include/log4cpp away";;
+            *) ok "log4cpp shim" "apt headers via ${LOG4CPP_INC} (ahead of the old /usr/local/include/log4cpp)";;
         esac
     fi
     chk_lib  "log4cpp lib" "${LOG4CPP_LIB:-}" log4cpp

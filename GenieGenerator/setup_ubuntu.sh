@@ -71,6 +71,16 @@ _multiarch="$(gcc -print-multiarch 2>/dev/null)"; _multiarch="${_multiarch:-x86_
 export LIBXML2_INC=/usr/include/libxml2
 export LIBXML2_LIB="/usr/lib/${_multiarch}"
 export LOG4CPP_INC=/usr/include
+# gcc always searches /usr/local/include before /usr/include (and drops -I/usr/include),
+# so an old log4cpp 1.0 in /usr/local/include (not valid C++17) shadows the apt one.
+# Point GENIE at the apt headers through a small shim directory, which -I puts first.
+if grep -qsE 'throw *\(std::invalid_argument\)' /usr/local/include/log4cpp/Priority.hh \
+   && [ -d /usr/include/log4cpp ]; then
+    _shim="${GENIE_HOME}/external/install/include/log4cpp-system"
+    mkdir -p "${_shim}" 2>/dev/null && { [ -e "${_shim}/log4cpp" ] || ln -s /usr/include/log4cpp "${_shim}/log4cpp"; }
+    [ -e "${_shim}/log4cpp/Category.hh" ] && export LOG4CPP_INC="${_shim}"
+    unset _shim
+fi
 export LOG4CPP_LIB="/usr/lib/${_multiarch}"
 unset _multiarch
 
