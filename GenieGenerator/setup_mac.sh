@@ -80,7 +80,10 @@ export LHAPATH="${GENIE}/data/evgen/pdfs"
 export LHAPDF_DATA_PATH="${GENIE}/data/evgen/pdfs:${CONDA_PREFIX}/share/LHAPDF"
 
 # --- TPythia6 ------------------------------------------------------------------
-export LINUX_SYS_INCLUDES="-I${TPYTHIA6_PATH}/include/TPythia6"
+# LINUX_SYS_INCLUDES also reaches rootcling (dictionary generation), which does not see
+# CXXFLAGS: give it the same two workarounds as the compiler (libc++ availability
+# markup, and non-strict mode so <float.h> defines NAN/INFINITY for the macOS 27 SDK).
+export LINUX_SYS_INCLUDES="-I${TPYTHIA6_PATH}/include/TPythia6 -D_LIBCPP_DISABLE_AVAILABILITY -U__STRICT_ANSI__"
 export SYSLIBS="-L${TPYTHIA6_PATH}/lib"
 
 # --- run-time paths ----------------------------------------------------------
