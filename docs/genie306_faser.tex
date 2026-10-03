@@ -41,6 +41,7 @@
   \begin{enumerate}
     \item Why the old recipe needed the ATLAS container
     \item The new build: one repository, two scripts
+    \item Running GENIE: \code{run\_genie.py}, from checkout to the FASER simulation
     \item Pitfalls solved along the way (macOS / modern ROOT)
     \item GENIE 3.04 (FASER fork) $\rightarrow$ 3.06.02: what changed
     \item Validation: 3.06 vs 3.04 on the FASERCal V10 sample
@@ -257,6 +258,82 @@ source setup.sh                           # = setup_ubuntu.sh
 \end{frame}
 
 % ===========================================================================
+\section{Running GENIE}
+
+\begin{frame}{Workflow: from checkout to the FASER simulation}
+  \centering
+  \begin{tikzpicture}[
+      st/.style={draw, rounded corners=2pt, align=center, font=\scriptsize, fill=white,
+                 minimum height=9mm, text width=26mm, inner sep=2pt},
+      once/.style={st, fill=soft},
+      fas/.style={st, fill=new!12},
+      arr/.style={-{Latex[length=2mm]}, thick, accent},
+      lab/.style={font=\scriptsize\bfseries, text=accent, anchor=east, align=right}]
+    \node[lab] at (-5.55,0)    {once};
+    \node[lab] at (-5.55,-1.9) {each\\sample};
+    \node[lab, align=right] at (-5.55,-3.8) {FASER\\repo};
+    % row 1: once per machine
+    \node[once] (chk) at (-3.85,0) {\texttt{check\_requirements.sh}\\ what is missing};
+    \node[once] (bld) at (-0.95,0) {\texttt{./build.sh}\\ externals + GENIE};
+    \node[once] (spl) at ( 1.95,0) {splines\\ in \texttt{faser\_xsec/}};
+    \node[st]   (set) at ( 4.85,0) {\texttt{source setup.sh}\\ every terminal};
+    % row 2: per sample
+    \node[st, fill=accent!12, text width=30mm] (run) at (-3.65,-1.9)
+         {\texttt{python3 run\_genie.py}\\ \texttt{-{}-flux -{}-lumi -{}-jobs}};
+    \node[st, text width=34mm] (out) at (0.45,-1.9)
+         {\texttt{output/}: \texttt{.ghep.root}, \texttt{.gfaser.root},\\ logs, record \texttt{.sh}, summary};
+    \node[st, text width=27mm] (mrg) at (4.6,-1.9)
+         {\texttt{-{}-merge -{}-export}\\ $\rightarrow$ \texttt{\$FASERDATA/GENIE}};
+    % row 3: FASER repository
+    \node[fas, text width=30mm] (cv)  at (-3.65,-3.8) {\texttt{run\_convertgenie.py}\\ per detector, lumi from record};
+    \node[fas, text width=30mm] (ps)  at ( 0.45,-3.8) {\texttt{run\_faserps.py}\\ Geant4 simulation};
+    \draw[arr] (chk) -- (bld); \draw[arr] (bld) -- (spl); \draw[arr] (spl) -- (set);
+    \draw[arr] (set.south) -- ++(0,-0.4) -| (run.north);
+    \draw[arr] (run) -- (out); \draw[arr] (out) -- (mrg);
+    \draw[arr] (mrg.south) -- ++(0,-0.4) -| (cv.north);
+    \draw[arr] (cv) -- (ps);
+  \end{tikzpicture}
+
+  \vspace{4pt}\small Only the middle row is repeated for each new sample. \code{run\_genie.py} replaces the
+  hand-written \code{faser/run*.sh}, and \code{gevgen\_faser -{}-gfaser} the \code{convertGHEP.C} pass.
+\end{frame}
+
+\begin{frame}[fragile]{\texttt{run\_genie.py}}
+  \begin{columns}[T]
+    \column{0.56\textwidth}
+\begin{lstlisting}
+source setup.sh
+python3 run_genie.py --dry-run   # plan only
+python3 run_genie.py             # 1000/fb, light
+python3 run_genie.py --flux charm --jobs 8
+python3 run_genie.py --lumi 2000 --jobs 16 \
+     --run 100 --cc-only --merge --export
+\end{lstlisting}
+    \vspace{2pt}
+    {\scriptsize Files in \code{output/}, with \code{P} = \code{fasercal.Aki2024.v10.light}:}
+\begin{lstlisting}
+P.0.ghep.root    P.0.gfaser.root     (per job)
+P.0.log          genie-mcjob-0.status
+P.all.gfaser.root                  (--merge)
+P.r0-7.run_genie.sh         (exact commands)
+P.r0-7.run_genie_summary.log  (events, s/ev)
+\end{lstlisting}
+    \column{0.42\textwidth}
+    \footnotesize
+    \begin{itemize}\setlength{\itemsep}{2pt}
+      \item \textbf{Inputs found:} the \code{.gdml} in \code{data/GDML}, Aki 2024 flux in
+            \code{data/fluxes}, \code{faser\_xsec} splines (all overridable)
+      \item \textbf{Jobs:} luminosity split over \code{-{}-jobs}; run $r$ = \code{-{}-run}+$i$,
+            seed = base + $r$; up to one job per core
+      \item \textbf{Safe:} asks before overwriting; Ctrl-C stops all jobs
+      \item \textbf{Traceable:} commands and luminosity recorded; summary per job
+      \item \textbf{Hand-over:} \code{-{}-export} copies gFaser file, record and summary
+            to \code{\$FASERDATA/GENIE} for \code{run\_convertgenie.py}
+    \end{itemize}
+  \end{columns}
+\end{frame}
+
+% ===========================================================================
 \section{Pitfalls solved}
 
 \begin{frame}{Problems found and fixed (all automatic in the scripts)}
@@ -429,11 +506,17 @@ source setup.sh                          # mac, lxplus or ubuntu: detected
 # incremental rebuild after a code change
 cd GenieGenerator && make -j && make install && cd ..
 
-# event generation (FASERCal V10, Aki 2024 light flux, 1000 fb^-1)
+# check / build (once per machine)
+./check_requirements.sh
+./build.sh                   # runs the check again, stops if something is missing
+
+# event generation (FASERCal V10, Aki 2024 light flux, 1000 fb^-1, 8 jobs) -> output/
+python3 run_genie.py --jobs 8 --merge --export
+# same thing by hand, one job:
 gevgen_faser -l 1000.0 -r 0 -g $GENIE_HOME/data/GDML/FASERCAL_V10.gdml \
    -f $GENIE_HOME/data/fluxes/Aki_2024/events_light_4x4.root --seed 2999833 \
    --cross-sections $GENIE_HOME/faser_xsec/faserSplines.7TeV.xml \
-   -o fasercal.Aki2024.v10.light
+   -o fasercal.Aki2024.v10.light --gfaser
 
 # splines (run in GENIE3.06/splines_work, one flavour at a time)
 source $GENIE/faser/Splines/calcSplinesN.sh;  wait
