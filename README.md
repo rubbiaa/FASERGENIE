@@ -139,6 +139,32 @@ keeps the GENIE `.ghep.root`, `--ghep-only` writes only that; `--cc-only`, a log
 file); `--export` copies those, with their records and summaries, to `$FASERDATA/GENIE` for the
 FASER simulation. `python3 run_genie.py -h` lists all options.
 
+## Regression test: run_regression.py
+
+`run_regression.py` (top directory, needs `source setup.sh`) generates three small fixed-seed
+samples in parallel -- **light** (Aki 2024 light flux, 5000 events), **charm** (Aki 2024 charm
+flux, 5000 events) and **nutau** (Kling 2021 ν_τ + anti-ν_τ only, 2000 events) -- and compares
+them with the **golden sample** in `tests/regression/golden/`:
+
+```bash
+python3 run_regression.py --record     # once: make the golden sample (json + histograms + pdf)
+python3 run_regression.py              # after any change: regenerate and compare
+python3 run_regression.py --case charm --quick
+python3 run_regression.py --input light=output/fasercal.Aki2024.v10.light.0.gfaser.root
+```
+
+For each case it records event counts, flavour/process/target fractions, kinematics (Eν, E_l, y,
+Q², W, lepton angle), final-state multiplicities, charm hadron production (species, energy,
+z = E_c/ν, p_T, and decay modes if GENIE decays them), taus (energy, p_T, decay modes, visible
+energy) and vertex distributions, as scalars with errors and as ~35 histograms, plus health
+checks that must stay zero (NaNs, E < m, broken indices, ...). GENIE events are exactly
+reproducible only with the same binary on the same platform (Mac and Ubuntu diverge after a few
+dozen events), so the comparison is statistical: pulls for scalars (WARN > 3σ, FAIL > 5σ), χ²
+shape tests for histograms (WARN p < 0.01, FAIL p < 1e-4); bitwise identity is reported, and
+required with `--exact`. Results: `tests/regression/results/` (`<case>.json`, `comparison.csv`,
+`compare_<case>.pdf` overlays). Re-record the golden sample (`--record --force`) only after a
+change has been validated.
+
 ## Event output: GHEP and gFaser
 
 `gevgen_faser` writes the GENIE GHEP file `[prefix].[run].ghep.root` (unless `--no-ghep`).

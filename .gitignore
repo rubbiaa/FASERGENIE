@@ -15,3 +15,6 @@ genie-mcjob-*.status
 # large flux ntuples: download with data/fluxes/getFluxNtp.sh
 # (or regenerate with data/fluxes/Kling_2023/getRawFluxes.sh + convertAllFluxes.sh)
 /data/fluxes/Kling_2023/*.root
+# regression test: generated samples and latest results (golden/ is committed)
+/tests/regression/work/
+/tests/regression/results/
