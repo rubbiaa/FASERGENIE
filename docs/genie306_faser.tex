@@ -44,7 +44,7 @@
     \item Running GENIE: \code{run\_genie.py}, from checkout to the FASER simulation
     \item Pitfalls solved along the way (macOS / modern ROOT)
     \item GENIE 3.04 (FASER fork) $\rightarrow$ 3.06.02: what changed
-    \item Validation: 3.06 vs 3.04 on the FASERCal V10 sample
+    \item Validation: 3.06 vs 3.04, Mac vs Ubuntu, and a regression test
     \item Next steps
   \end{enumerate}
 \end{frame}
@@ -323,13 +323,12 @@ P.r0-7.run_genie_summary.log  (events, s/ev)
     \column{0.42\textwidth}
     \footnotesize
     \begin{itemize}\setlength{\itemsep}{2pt}
-      \item \textbf{Two samples:} light and charm side by side, each its own files, seeds and merged file
-      \item \textbf{Inputs found:} the \code{.gdml} in \code{data/GDML}, Aki 2024 flux in
-            \code{data/fluxes}, \code{faser\_xsec} splines (all overridable)
+      \item \textbf{Two samples:} light and charm side by side, own files, seeds, merged file
+      \item \textbf{Inputs found} in \code{data/GDML}, \code{data/fluxes}, \code{faser\_xsec}
       \item \textbf{Jobs:} luminosity split over \code{-{}-jobs}; run $r$ = \code{-{}-run}+$i$,
             seed = base + $r$; one queue, up to one job per core
       \item \textbf{Output:} gFaser only (\code{-{}-no-ghep}); \code{-{}-ghep} adds GHEP
-      \item \textbf{Safe, traceable:} asks before overwriting; commands, luminosity and a summary recorded
+      \item \textbf{Safe, traceable:} asks before overwriting; records commands and lumi
       \item \textbf{Hand-over:} \code{-{}-export} copies \code{P.all.gfaser.root} (light, charm),
             records and summaries to \code{\$FASERDATA/GENIE}
     \end{itemize}
@@ -485,11 +484,88 @@ P.r0-7.run_genie_summary.log  (events, s/ev)
   \end{exampleblock}
 \end{frame}
 
+
+\begin{frame}{Mac vs Ubuntu: same sample, different events}
+  \footnotesize Same command and seed (1000\,fb$^{-1}$, light, 3.04 splines), Mac (arm64, clang) vs Ubuntu (x86-64, gcc).
+  \begin{columns}[T]
+    \column{0.47\textwidth}
+    \scriptsize
+    \resizebox{\linewidth}{!}{%
+    \begin{tabular}{@{}lcc@{}}
+      \toprule
+      & Mac & Ubuntu \\
+      \midrule
+      events & 39\,661 & 39\,900 \\
+      $\langle E_\nu\rangle$ / median [GeV] & 476 / 223 & 472 / 220 \\
+      $\nu_\mu$ / $\bar\nu_\mu$ / $\nu_e$ / $\bar\nu_e$ [\%] & 65.1/27.3/5.1/2.5 & 65.1/27.3/5.3/2.4 \\
+      CC [\%] & 75.8 & 75.6 \\
+      DIS / RES / QEL [\%] & 97.4/1.9/0.4 & 97.1/2.1/0.5 \\
+      Fe / C / Pb / W [\%] & 75.8/7.7/7.3/3.4 & 75.9/7.9/7.1/3.3 \\
+      charm events [\%] & 6.4 & 6.1 \\
+      $\langle n_\text{ch}\rangle$ / $\langle n_{\pi^0}\rangle$ & 7.86 / 2.38 & 7.85 / 2.37 \\
+      \bottomrule
+    \end{tabular}}
+    \vspace{4pt}
+    \begin{itemize}\setlength{\itemsep}{1pt}
+      \item First \textbf{38 events bit-identical}, then the event sequences diverge
+      \item Cause: floating-point rounding (clang/arm64 vs gcc/x86); one accept/reject flips,
+            the random sequence shifts
+      \item Statistically identical: rate $+0.8\sigma$, KS $p$ = 0.37 ($E_\nu$), 0.20 ($n_\text{ch}$),
+            0.16 ($v_z$); regression test: \textbf{101/101 PASS}
+    \end{itemize}
+    \column{0.51\textwidth}
+    \includegraphics[width=\linewidth]{mac_vs_ubuntu_1.png}\\[-2pt]
+    {\tiny grey band: Mac (golden), points: Ubuntu; lower pads: Ubuntu/Mac}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Regression test: \texttt{run\_regression.py}}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+\begin{lstlisting}
+python3 run_regression.py --record   # golden
+python3 run_regression.py            # compare
+python3 run_regression.py --case charm --quick
+python3 run_regression.py --input \
+    light=output/<prefix>.0.gfaser.root
+\end{lstlisting}
+    \scriptsize
+    \begin{tabular}{@{}llr@{}}
+      \toprule
+      case & flux & events \\
+      \midrule
+      \code{light} & Aki 2024 light & 5000 \\
+      \code{charm} & Aki 2024 charm & 5000 \\
+      \code{nutau} & Kling 2021 $\nu_\tau$, $\bar\nu_\tau$ & 2000 \\
+      \bottomrule
+    \end{tabular}\\[3pt]
+    Golden sample in \code{tests/regression/golden/}: JSON (scalars, histograms, health, metadata) + PDF.
+    \column{0.48\textwidth}
+    \scriptsize
+    \begin{itemize}\setlength{\itemsep}{1pt}
+      \item \textbf{$\sim$100 scalars} with errors: flavours, CC/NC, processes, targets,
+            $E_\nu$, $y$, $Q^2$, $W$, multiplicities, charm (species, $z$, $p_T$, decays),
+            $\tau$ (rate, energy, decay modes)
+      \item \textbf{$\sim$35 histograms} (fixed binning), $\chi^2$ shape test
+      \item \textbf{Health} checks must be 0 (NaN, $E<m$, bad indices, \dots)
+      \item \textbf{Statistical}, since events are exact only on the same binary/platform:
+            WARN at $3\sigma$ / $p<10^{-2}$, FAIL at $5\sigma$ / $p<10^{-4}$; \code{-{}-exact} for bitwise
+    \end{itemize}
+    \textbf{Sensitivity} (injected into the Ubuntu sample):\\[1pt]
+    \begin{tabular}{@{}ll@{}}
+      vertex $z$ + 5\,cm & FAIL ($v_z$ shape) \\
+      30\% fewer D$^+$ events & FAIL ($n_\text{charm}$) + species WARNs \\
+      lepton energy $+2\%$ & FAIL ($y$, $W$, $z_c$, $p_z$ balance) \\
+    \end{tabular}
+  \end{columns}
+\end{frame}
+
 % ===========================================================================
 \section{Next steps}
 
 \begin{frame}{Next steps}
   \begin{enumerate}
+    \item \textbf{Record the golden sample} (\code{run\_regression.py -{}-record}) and run it after every change
     \item \textbf{Charm sample:} repeat the 3.04 comparison for the Aki 2024 charm flux
     \item \textbf{Regenerate splines for 3.06} with \code{faser/Splines/}
           (free nucleons $\rightarrow$ nuclei, 6 flavours, up to 7\,TeV; $\sim$2--3 days on 16 cores)
@@ -509,6 +585,7 @@ cd GenieGenerator && make -j && make install && cd ..   # rebuild after a code c
 
 # event generation (FASERCal V10, Aki 2024 light + charm, 1000 fb^-1, 8 jobs each) -> output/
 python3 run_genie.py --jobs 8 --merge --export      # light + charm -> 2 merged files
+python3 run_regression.py                           # compare with the golden sample
 # same thing by hand, one job (light):
 gevgen_faser -l 1000.0 -r 0 -g $GENIE_HOME/data/GDML/FASERCAL_V10.gdml \
    -f $GENIE_HOME/data/fluxes/Aki_2024/events_light_4x4.root --seed 2999833 \
