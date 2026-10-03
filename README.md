@@ -41,7 +41,7 @@ event output are created next to `GenieGenerator/` and are ignored by git (`.git
 
 ```
 GENIE3.06/                    <- this repository = work directory (GENIE_HOME)
-├── README.md  GENIE_3.04_vs_3.06.md
+├── README.md  GENIE_3.04_vs_3.06.md  run_genie.py
 ├── setup.sh  build.sh  setup_<site>.sh  build_genie_<site>.sh   <- shortcuts (site = mac, lcg, ubuntu)
 ├── GenieGenerator/           <- GENIE source tree (GENIE)
 │   ├── setup*.sh  build*.sh
@@ -111,6 +111,28 @@ libxml2, log4cpp and compilers. The scripts handle a few pitfalls automatically:
 Run the event-generation scripts with `source`, not `./`: macOS strips `DYLD_*`
 variables from `/bin/bash` scripts (the libraries have absolute install names, so
 this is only a precaution).
+
+## Running GENIE: run_genie.py
+
+`run_genie.py` (top directory, needs `source setup.sh`) builds and runs the `gevgen_faser`
+commands for you, in the style of the FASER repository's `run_convertgenie.py`:
+
+```bash
+python3 run_genie.py                         # 1000 fb^-1, Aki 2024 light flux, FASERCAL_V10, 1 job
+python3 run_genie.py --flux charm --jobs 8   # 8 parallel jobs of 125 fb^-1 (runs 0-7, seeds 3999833+r)
+python3 run_genie.py --lumi 2000 --jobs 16 --run 100 --merge --export
+python3 run_genie.py --dry-run               # show the plan and the commands only
+```
+
+Inputs are found automatically (the single `.gdml` in `data/GDML`, `data/fluxes/Aki_2024/
+events_<flux>_4x4.root`, `faser_xsec/faserSplines.7TeV.xml`; override with `--geometry-file`,
+`--flux-file`, `--splines`). The luminosity is split evenly over `--jobs` (run numbers `--run`,
+`--run+1`, ...; seed = `--seed` + run number), with at most `--max-parallel` jobs at once.
+Output goes to `output/`: `.ghep.root` and `.gfaser.root` per job (`--no-gfaser`, `--cc-only`),
+a log per job, a record of the exact commands (`<prefix>.r<runs>.run_genie.sh`) and a summary
+with events and time per event (`<prefix>.r<runs>.run_genie_summary.log`). `--merge` hadds the
+gFaser files; `--export` copies them with the record to `$FASERDATA/GENIE` for the FASER
+simulation. `python3 run_genie.py -h` lists all options.
 
 ## Event output: GHEP and gFaser
 

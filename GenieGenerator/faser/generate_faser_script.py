@@ -10,7 +10,7 @@ n_runs = 200
 
 with open(output_file, "w") as f:
     f.write("#!/bin/bash\n\n")
-    f.write("cd $GENIE_HOME/run\n\n")
+    f.write("cd $GENIE_OUTPUT\n\n")
 
     for i in range(n_runs):
         seed = initial_seed + i
