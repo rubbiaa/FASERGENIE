@@ -11,7 +11,8 @@
 #   2) environment              sources setup_<site>.sh in this process (your shell is not touched)
 #   3) libraries and tools      compilers, ROOT (+Geom/MathMore/EG), libxml2, log4cpp, LHAPDF 6
 #   4) built by build.sh        Pythia6, TPythia6, APFEL, GENIE itself
-#   5) inputs for running       splines, flux files, geometry used by faser/run*.sh
+#   5) inputs for running       splines and geometry used by faser/run*.sh
+#   6) flux files               data/fluxes: in git, Kling 2023 downloads, valid ROOT files, used by run*.sh
 #
 # Status:  [ok]  [MISSING] (you must install it)  [TO BUILD] (./build.sh makes it)
 #          [RUN] (needed only to run)  [ -- ] (optional, absent)  [WARN]
@@ -225,7 +226,7 @@ if [ "${can_setup}" = 1 ]; then
     else tobuild "  GENIE libs" "${GENIE_INSTALL}/lib"; fi
 
     # ---- 5) inputs for running ---------------------------------------------------
-    section "5) inputs for running (faser/run*.sh)"
+    section "5) inputs for running: splines, geometry"
     xs="${GENIE_HOME}/faser_xsec/faserSplines.7TeV.xml"
     if [ -e "${xs}" ]; then
         case "$(readlink -f "${xs}")" in
@@ -234,12 +235,55 @@ if [ "${can_setup}" = 1 ]; then
         esac
     else runreq "splines" "${xs} -- make with faser/Splines (days) or copy/link them"; fi
     chk_file "geometry" "${GENIE_HOME}/data/GDML/FASERCAL_V10.gdml" runreq
+
+    # ---- 6) flux files ---------------------------------------------------------
+    section "6) flux files (data/fluxes)"
+    FLX="${GENIE_HOME}/data/fluxes"
+    chk_flux() {   # relative-path missing-handler [hint]
+        local f="${FLX}/$1" sz magic
+        if [ ! -e "$f" ]; then "$2" "  $1" "missing${3:+ -- $3}"; return; fi
+        sz=$(wc -c < "$f" | tr -d ' ')
+        if [ "${sz}" -ge 1048576 ]; then sz="$(( sz / 1048576 )) MB"; else sz="$(( sz / 1024 )) kB"; fi
+        magic=$(head -c 4 "$f" 2>/dev/null)
+        if [ "${magic}" != "root" ]; then   # e.g. an HTML error page saved by wget
+            if [ "$2" = runreq ]; then runreq "  $1" "not a ROOT file (${sz}): failed or incomplete download?"
+            else warn "  $1" "not a ROOT file (${sz}): failed or incomplete download?"; fi
+        else
+            ok "  $1" "${sz}"
+        fi
+    }
+    echo "  -- in git (Aki 2024 for FASERCal, Kling 2021 histograms)"
     for fl in Aki_2024/events_light_4x4.root Aki_2024/events_charm_4x4.root Kling_2021/Kling_2021.root; do
-        chk_file "flux" "${GENIE_HOME}/data/fluxes/${fl}" runreq
+        chk_flux "${fl}" runreq
     done
-    for fl in Kling_2023/DPMJET.root Kling_2023/SIBYLL.root; do   # git-ignored, large
-        chk_file "flux" "${GENIE_HOME}/data/fluxes/${fl}" opt "download with data/fluxes/getFluxNtp.sh"
+    echo "  -- Kling 2023 ntuples (not in git: data/fluxes/getFluxNtp.sh downloads them)"
+    n23=0
+    for fl in DPMJET SIBYLL light_SIBYLL light_EPOSLHC light_QGSJET charm_SIBYLL charm_NLO charm_DPMJET; do
+        chk_flux "Kling_2023/${fl}.root" opt "data/fluxes/getFluxNtp.sh"
+        [ -e "${FLX}/Kling_2023/${fl}.root" ] || n23=$((n23+1))
     done
+    [ ${n23} -gt 0 ] && echo "              ${n23} Kling 2023 file(s) absent: needed only by runGenerator_5_*.sh; get them with  bash data/fluxes/getFluxNtp.sh"
+    # other flux files someone added
+    known=" Aki_2024/events_light_4x4.root Aki_2024/events_charm_4x4.root Kling_2021/Kling_2021.root "
+    for fl in DPMJET SIBYLL light_SIBYLL light_EPOSLHC light_QGSJET charm_SIBYLL charm_NLO charm_DPMJET; do known="${known}Kling_2023/${fl}.root "; done
+    extra=0
+    while IFS= read -r f; do
+        rel="${f#${FLX}/}"
+        case "${known}" in *" ${rel} "*) ;; *) [ ${extra} = 0 ] && echo "  -- other flux files"; extra=1; chk_flux "${rel}" opt;; esac
+    done < <(find "${FLX}" -name "*.root" 2>/dev/null | sort)
+    # flux files used by the run scripts
+    echo "  -- used by faser/run*.sh"
+    nused=0; nbad=0
+    while IFS= read -r fl; do
+        nused=$((nused+1))
+        p="${fl/\$GENIE_HOME/${GENIE_HOME}}"; p="${p/\$\{GENIE_HOME\}/${GENIE_HOME}}"; p="${p/\$GENIE/${GENIE}}"
+        if [ ! -e "${p}" ]; then
+            nbad=$((nbad+1))
+            scripts=$(grep -l -- "-f ${fl} " "${GENIE}"/faser/run*.sh 2>/dev/null | sed 's|.*/||' | tr '\n' ' ')
+            runreq "  run script" "${p#${GENIE_HOME}/} missing (${scripts% })"
+        fi
+    done < <(grep -h -v '^[[:space:]]*#' "${GENIE}"/faser/run*.sh 2>/dev/null | grep -o -- ' -f [^ ]*' | awk '{print $2}' | sort -u)
+    [ ${nbad} = 0 ] && ok "  run scripts" "all ${nused} flux files they use are present"
 fi
 
 # ---- summary ---------------------------------------------------------------------
