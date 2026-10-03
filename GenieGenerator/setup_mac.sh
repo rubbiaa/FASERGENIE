@@ -25,7 +25,10 @@ else
     _genie_src="${_genie_dir}/GenieGenerator"           # work-area layout
 fi
 export GENIE="${_genie_src}"                          # GENIE source tree
-export GENIE_HOME="$( dirname "${GENIE}" )"           # work area: install/, build/, run/, faser_xsec/
+export GENIE_HOME="$( dirname "${GENIE}" )"           # work area: install/, build/, data/, output/, faser_xsec/
+# gevgen_faser writes its .ghep.root / .gfaser.root / status files here (override: --output-dir)
+export GENIE_OUTPUT="${GENIE_OUTPUT:-${GENIE_HOME}/output}"
+mkdir -p "${GENIE_OUTPUT}" 2>/dev/null
 GENIE_CONDA_ENV=${GENIE_CONDA_ENV:-genie}
 
 # --- conda env (created by build_genie_mac.sh in ~/miniforge3/envs/genie) -----

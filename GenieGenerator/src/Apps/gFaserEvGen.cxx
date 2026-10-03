@@ -26,6 +26,7 @@
                         [-L flux_file_lumi_norm]
                         [-o outfile_prefix]
                         [--gfaser] [--gfaser-cc-only]
+                        [--output-dir directory]
                         [--seed random_number_seed]
                         [-t top_volume_name_at_geom || -t +Vol1-Vol2...]  
                         [-m max_path_lengths_xml_file]
@@ -103,6 +104,11 @@
               As --gfaser, but keep only charged-current events in the gFaser
               file (the GHEP file still has all events); same selection as
               convertGHEP.C(..., ccOnly=true).
+           --output-dir
+              Directory for the GHEP file, the gFaser file and the job status file.
+              Default: $GENIE_OUTPUT (set by setup.sh to $GENIE_HOME/output), or the
+              current directory if GENIE_OUTPUT is not set. Ignored if the -o prefix
+              already contains a directory (e.g. -o /scratch/myrun).
            --seed
               Random number seed.
            -t
@@ -383,7 +389,8 @@ string          gOptRootGeomTopVol = "";       // input geometry top event gener
 double          gOptGeomLUnits = 0;            // input geometry length units
 double          gOptGeomDUnits = 0;            // input geometry density units
 string          gOptExtMaxPlXml;               // max path lengths XML file for input geometry
-string          gOptEvFilePrefix;              // event file prefix
+string          gOptEvFilePrefix;              // event file prefix (incl. output directory)
+string          gOptOutputDir;                 // output directory ("" = current directory)
 long int        gOptRanSeed;                   // random number seed
 string          gOptInpXSecFile;               // cross-section splines
 bool            gOptWriteGFaser = false;       // also write the flat gFaser ntuple
@@ -541,6 +548,12 @@ int main(int argc, char ** argv)
 
   // Create a MC job monitor for a periodically updated status file
   GMCJMonitor mcjmonitor(gOptRunNu);
+  {
+    // status file next to the event files
+    string dir = gOptEvFilePrefix.substr(0, gOptEvFilePrefix.find_last_of('/') + 1);
+    ostringstream sf; sf << dir << "genie-mcjob-" << gOptRunNu << ".status";
+    mcjmonitor.CustomizeFilename(sf.str());
+  }
   mcjmonitor.SetRefreshRate(RunOpt::Instance()->MCJobStatusRefreshRate());
 
   // *************************************************************************
@@ -737,6 +750,21 @@ void GetCommandLineArgs(int argc, char ** argv)
       << "Will set the default event filename prefix";
     gOptEvFilePrefix = kDefOptEvFilePrefix;
   } //-o
+
+  // output directory: --output-dir, else $GENIE_OUTPUT, else the current directory;
+  // a prefix that already contains a directory is used as given
+  if( parser.OptionExists("output-dir") ) {
+    gOptOutputDir = parser.ArgAsString("output-dir");
+  } else if ( std::getenv("GENIE_OUTPUT") ) {
+    gOptOutputDir = std::getenv("GENIE_OUTPUT");
+  }
+  if ( gOptEvFilePrefix.find('/') != string::npos ) gOptOutputDir = "";
+  if ( !gOptOutputDir.empty() ) {
+    gSystem->mkdir(gOptOutputDir.c_str(), kTRUE);
+    if ( gOptOutputDir.back() != '/' ) gOptOutputDir += "/";
+    gOptEvFilePrefix = gOptOutputDir + gOptEvFilePrefix;
+    LOG("gevgen_faser", pNOTICE) << "Output files go to " << gOptOutputDir;
+  }
 
   // run number
   if( parser.OptionExists('r') ) {
@@ -1146,6 +1174,7 @@ void PrintSyntax(void)
     << "\n                   [-L flux_file_lumi_norm (default: 150 fb^-1)]"
     << "\n                   [-o outfile_prefix]"
     << "\n                   [--gfaser] [--gfaser-cc-only]"
+    << "\n                   [--output-dir directory (default: $GENIE_OUTPUT)]"
     << "\n                   [--seed random_number_seed]"
     << "\n                   [-t top_volume_name_at_geom || -t +Vol1-Vol2...]"
     << "\n                   [-m max_path_lengths_xml_file]"

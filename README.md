@@ -54,7 +54,7 @@ GENIE3.06/                    <- this repository = work directory (GENIE_HOME)
 ├── external/downloads/       <- cached source tarballs
 ├── external/install/         <- Pythia6, TPythia6 (and APFEL): kept apart from install/
 ├── faser_xsec/               <- cross-section splines (git-ignored; make or copy them here)
-└── run/                      <- event output used by faser/run*.sh (git-ignored)
+└── output/                   <- $GENIE_OUTPUT: .ghep.root, .gfaser.root, status files, run logs (git-ignored)
 ```
 
 ## Quick start (macOS)
@@ -124,6 +124,10 @@ gevgen_faser -l 1000.0 -r 0 -g $GENIE_HOME/data/GDML/FASERCAL_V10.gdml \
    --cross-sections $GENIE_HOME/faser_xsec/faserSplines.7TeV.xml \
    -o fasercal.Aki2024.v10.light --gfaser          # or --gfaser-cc-only
 ```
+
+All output files (GHEP, gFaser, `genie-mcjob-<run>.status`) go to `$GENIE_OUTPUT`, which
+`setup.sh` sets to `GENIE3.06/output/`; use `--output-dir dir` for another place, or give `-o` a
+prefix with a directory. The `faser/run*.sh` scripts also run (and write their logs) there.
 
 The branches are those of `convertGHEP.C` (`vx vy vz n name pdgc status firstMother
 lastMother firstDaughter lastDaughter px py pz E m M`). One difference: in `convertGHEP.C`

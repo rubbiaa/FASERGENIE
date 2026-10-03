@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd $GENIE_HOME/run
+cd $GENIE_OUTPUT
 
 # instead of a fixed number of events, each job command generates 600 fb^-1 of neutrino interactions
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd $GENIE_HOME/run
+cd $GENIE_OUTPUT
 
 # this command generates 1000 events in FASER using the Aki 2024 fluxes https://twiki.cern.ch/twiki/bin/view/FASER/Run420benchmark
 # instead of a fixed number of events, this command generates 1000 fb^-1 of neutrino interactions ten times

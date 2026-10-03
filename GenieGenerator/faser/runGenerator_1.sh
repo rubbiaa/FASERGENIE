@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd $GENIE_HOME/run
+cd $GENIE_OUTPUT
 
 # this command generates 1000 events in FASER using the Kling fluxes
 

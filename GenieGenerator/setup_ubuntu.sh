@@ -28,7 +28,10 @@ else
     _genie_src="${_genie_dir}/GenieGenerator"           # work-area layout
 fi
 export GENIE="${_genie_src}"                          # GENIE source tree
-export GENIE_HOME="$( dirname "${GENIE}" )"           # work area: install/, build/, run/, faser_xsec/
+export GENIE_HOME="$( dirname "${GENIE}" )"           # work area: install/, build/, data/, output/, faser_xsec/
+# gevgen_faser writes its .ghep.root / .gfaser.root / status files here (override: --output-dir)
+export GENIE_OUTPUT="${GENIE_OUTPUT:-${GENIE_HOME}/output}"
+mkdir -p "${GENIE_OUTPUT}" 2>/dev/null
 unset _genie_here _genie_real _genie_dir _genie_src
 
 export GENIE_INSTALL="${GENIE_HOME}/install"          # GENIE only (wiped by "make distclean")

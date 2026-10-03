@@ -6,6 +6,7 @@
 /faser_xsec/
 /splines_work/
 /run/
+/output/
 /.git-old-GenieGenerator/
 *.log
 .DS_Store

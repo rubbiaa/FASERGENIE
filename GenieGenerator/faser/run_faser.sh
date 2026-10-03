@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd $GENIE_HOME/run
+cd $GENIE_OUTPUT
 
 gevgen_faser -l 1000.0 -r 0 -g $GENIE_HOME/data/obsolete/geometry_v5.gdml -f $GENIE_HOME/data/fluxes/Aki_2024/events_charm_4x4.root --seed 4189820 --cross-sections $GENIE_HOME/faser_xsec/faserSplines.7TeV.xml -o fasercal.Aki2024.charm
 gevgen_faser -l 1000.0 -r 1 -g $GENIE_HOME/data/obsolete/geometry_v5.gdml -f $GENIE_HOME/data/fluxes/Aki_2024/events_charm_4x4.root --seed 4189821 --cross-sections $GENIE_HOME/faser_xsec/faserSplines.7TeV.xml -o fasercal.Aki2024.charm
