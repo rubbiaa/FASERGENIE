@@ -115,25 +115,29 @@ this is only a precaution).
 ## Running GENIE: run_genie.py
 
 `run_genie.py` (top directory, needs `source setup.sh`) builds and runs the `gevgen_faser`
-commands for you, in the style of the FASER repository's `run_convertgenie.py`:
+commands for you, in the style of the FASER repository's `run_convertgenie.py`. By default it
+generates **two samples side by side**, the Aki 2024 **light** and **charm** fluxes, each with
+its own files (`fasercal.Aki2024.v10.light.*`, `fasercal.Aki2024.v10.charm.*`):
 
 ```bash
-python3 run_genie.py                         # 1000 fb^-1, Aki 2024 light flux, FASERCAL_V10, 1 job
-python3 run_genie.py --flux charm --jobs 8   # 8 parallel jobs of 125 fb^-1 (runs 0-7, seeds 3999833+r)
-python3 run_genie.py --lumi 2000 --jobs 16 --run 100 --merge --export
-python3 run_genie.py --dry-run               # show the plan and the commands only
+python3 run_genie.py                           # light + charm, 1000 fb^-1 each, 1 job each
+python3 run_genie.py --jobs 8 --merge --export # 8+8 parallel jobs -> one light, one charm file
+python3 run_genie.py --flux light              # one sample only
+python3 run_genie.py --dry-run                 # show the plan and the commands only
 ```
 
 Inputs are found automatically (the single `.gdml` in `data/GDML`, `data/fluxes/Aki_2024/
 events_<flux>_4x4.root`, `faser_xsec/faserSplines.7TeV.xml`; override with `--geometry-file`,
-`--flux-file`, `--splines`). The luminosity is split evenly over `--jobs` (run numbers `--run`,
-`--run+1`, ...; seed = `--seed` + run number), with at most `--max-parallel` jobs at once.
-Output goes to `output/`: by default only the `.gfaser.root` per job (`gevgen_faser --gfaser
---no-ghep`); `--ghep` also keeps the GENIE `.ghep.root`, `--ghep-only` writes only that; `--cc-only`,
-a log per job, a record of the exact commands (`<prefix>.r<runs>.run_genie.sh`) and a summary
-with events and time per event (`<prefix>.r<runs>.run_genie_summary.log`). `--merge` hadds the
-gFaser files; `--export` copies them with the record to `$FASERDATA/GENIE` for the FASER
-simulation. `python3 run_genie.py -h` lists all options.
+`--flux-file`, `--splines`). Each sample gets the full `--lumi`, split evenly over `--jobs`
+(run numbers `--run`, `--run+1`, ...; seed = 2999833 + run for light, 3999833 + run for charm,
+or `--seed`); all jobs share one queue of at most `--max-parallel`. Output goes to `output/`:
+by default only the `.gfaser.root` per job (`gevgen_faser --gfaser --no-ghep`); `--ghep` also
+keeps the GENIE `.ghep.root`, `--ghep-only` writes only that; `--cc-only`, a log and a
+`<prefix>.<run>.status` file per job, and per sample a record of the exact commands
+(`<prefix>.r<runs>.run_genie.sh`) and a summary (`<prefix>.r<runs>.run_genie_summary.log`).
+`--merge` hadds each sample separately into `<prefix>.all.gfaser.root` (one light, one charm
+file); `--export` copies those, with their records and summaries, to `$FASERDATA/GENIE` for the
+FASER simulation. `python3 run_genie.py -h` lists all options.
 
 ## Event output: GHEP and gFaser
 
@@ -148,7 +152,7 @@ gevgen_faser -l 1000.0 -r 0 -g $GENIE_HOME/data/GDML/FASERCAL_V10.gdml \
    -o fasercal.Aki2024.v10.light --gfaser          # or --gfaser-cc-only; add --no-ghep for gFaser only
 ```
 
-All output files (GHEP, gFaser, `genie-mcjob-<run>.status`) go to `$GENIE_OUTPUT`, which
+All output files (GHEP, gFaser, `[prefix].[run].status`) go to `$GENIE_OUTPUT`, which
 `setup.sh` sets to `GENIE3.06/output/`; use `--output-dir dir` for another place, or give `-o` a
 prefix with a directory. The `faser/run*.sh` scripts also run (and write their logs) there.
 

@@ -279,11 +279,11 @@ source setup.sh                           # = setup_ubuntu.sh
     \node[st]   (set) at ( 4.85,0) {\texttt{source setup.sh}\\ every terminal};
     % row 2: per sample
     \node[st, fill=accent!12, text width=30mm] (run) at (-3.65,-1.9)
-         {\texttt{python3 run\_genie.py}\\ \texttt{-{}-flux -{}-lumi -{}-jobs}};
+         {\texttt{python3 run\_genie.py}\\ light + charm, \texttt{-{}-lumi -{}-jobs}};
     \node[st, text width=34mm] (out) at (0.45,-1.9)
          {\texttt{output/}: \texttt{.gfaser.root}\\ (\texttt{.ghep.root} with \texttt{-{}-ghep}),\\ logs, record \texttt{.sh}, summary};
     \node[st, text width=27mm] (mrg) at (4.6,-1.9)
-         {\texttt{-{}-merge -{}-export}\\ $\rightarrow$ \texttt{\$FASERDATA/GENIE}};
+         {\texttt{-{}-merge -{}-export}: one light,\\ one charm file $\rightarrow$ \texttt{\$FASERDATA}};
     % row 3: FASER repository
     \node[fas, text width=30mm] (cv)  at (-3.65,-3.8) {\texttt{run\_convertgenie.py}\\ per detector, lumi from record};
     \node[fas, text width=30mm] (ps)  at ( 0.45,-3.8) {\texttt{run\_faserps.py}\\ Geant4 simulation};
@@ -304,18 +304,18 @@ source setup.sh                           # = setup_ubuntu.sh
 \begin{lstlisting}
 source setup.sh
 python3 run_genie.py --dry-run   # plan only
-python3 run_genie.py             # 1000/fb, light
-python3 run_genie.py --flux charm --jobs 8
-python3 run_genie.py --lumi 2000 --jobs 16 \
-     --run 100 --cc-only --merge --export
+python3 run_genie.py        # light + charm, 1000/fb
+python3 run_genie.py --jobs 8 --merge --export
+python3 run_genie.py --flux light --lumi 2000 \
+     --jobs 16 --run 100 --cc-only
 python3 run_genie.py --ghep      # also GHEP
 \end{lstlisting}
     \vspace{2pt}
-    {\scriptsize Files in \code{output/}, with \code{P} = \code{fasercal.Aki2024.v10.light}:}
+    {\scriptsize Files in \code{output/}, \code{P} = \code{fasercal.Aki2024.v10.light} or \code{.charm}:}
 \begin{lstlisting}
 P.0.gfaser.root  P.0.log             (per job)
 P.0.ghep.root                       (with --ghep)
-genie-mcjob-0.status
+P.0.status
 P.all.gfaser.root                  (--merge)
 P.r0-7.run_genie.sh         (exact commands)
 P.r0-7.run_genie_summary.log  (events, s/ev)
@@ -323,14 +323,15 @@ P.r0-7.run_genie_summary.log  (events, s/ev)
     \column{0.42\textwidth}
     \footnotesize
     \begin{itemize}\setlength{\itemsep}{2pt}
+      \item \textbf{Two samples:} light and charm side by side, each its own files, seeds and merged file
       \item \textbf{Inputs found:} the \code{.gdml} in \code{data/GDML}, Aki 2024 flux in
             \code{data/fluxes}, \code{faser\_xsec} splines (all overridable)
       \item \textbf{Jobs:} luminosity split over \code{-{}-jobs}; run $r$ = \code{-{}-run}+$i$,
-            seed = base + $r$; up to one job per core
+            seed = base + $r$; one queue, up to one job per core
       \item \textbf{Output:} gFaser only (\code{-{}-no-ghep}); \code{-{}-ghep} adds GHEP
       \item \textbf{Safe, traceable:} asks before overwriting; commands, luminosity and a summary recorded
-      \item \textbf{Hand-over:} \code{-{}-export} copies gFaser file, record and summary
-            to \code{\$FASERDATA/GENIE} for \code{run\_convertgenie.py}
+      \item \textbf{Hand-over:} \code{-{}-export} copies \code{P.all.gfaser.root} (light, charm),
+            records and summaries to \code{\$FASERDATA/GENIE}
     \end{itemize}
   \end{columns}
 \end{frame}
@@ -506,9 +507,9 @@ P.r0-7.run_genie_summary.log  (events, s/ev)
 source setup.sh                          # every terminal: mac, lxplus or ubuntu detected
 cd GenieGenerator && make -j && make install && cd ..   # rebuild after a code change
 
-# event generation (FASERCal V10, Aki 2024 light flux, 1000 fb^-1, 8 jobs) -> output/
-python3 run_genie.py --jobs 8 --merge --export
-# same thing by hand, one job:
+# event generation (FASERCal V10, Aki 2024 light + charm, 1000 fb^-1, 8 jobs each) -> output/
+python3 run_genie.py --jobs 8 --merge --export      # light + charm -> 2 merged files
+# same thing by hand, one job (light):
 gevgen_faser -l 1000.0 -r 0 -g $GENIE_HOME/data/GDML/FASERCAL_V10.gdml \
    -f $GENIE_HOME/data/fluxes/Aki_2024/events_light_4x4.root --seed 2999833 \
    --cross-sections $GENIE_HOME/faser_xsec/faserSplines.7TeV.xml \

@@ -109,7 +109,8 @@
               or --gfaser-cc-only). Saves disk space and time, but the GHEP file is
               what other GENIE tools (gntpc, gevdump, reweighting) read.
            --output-dir
-              Directory for the GHEP file, the gFaser file and the job status file.
+              Directory for the GHEP file, the gFaser file and the job status file
+              ([prefix].[run_number].status).
               Default: $GENIE_OUTPUT (set by setup.sh to $GENIE_HOME/output), or the
               current directory if GENIE_OUTPUT is not set. Ignored if the -o prefix
               already contains a directory (e.g. -o /scratch/myrun).
@@ -558,9 +559,10 @@ int main(int argc, char ** argv)
   // Create a MC job monitor for a periodically updated status file
   GMCJMonitor mcjmonitor(gOptRunNu);
   {
-    // status file next to the event files
-    string dir = gOptEvFilePrefix.substr(0, gOptEvFilePrefix.find_last_of('/') + 1);
-    ostringstream sf; sf << dir << "genie-mcjob-" << gOptRunNu << ".status";
+    // status file next to the event files, named after them ([prefix].[run].status),
+    // so jobs with different prefixes (e.g. light and charm) and the same run number
+    // can run side by side in one output directory
+    ostringstream sf; sf << gOptEvFilePrefix << "." << gOptRunNu << ".status";
     mcjmonitor.CustomizeFilename(sf.str());
   }
   mcjmonitor.SetRefreshRate(RunOpt::Instance()->MCJobStatusRefreshRate());
