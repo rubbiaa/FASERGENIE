@@ -128,7 +128,8 @@ Inputs are found automatically (the single `.gdml` in `data/GDML`, `data/fluxes/
 events_<flux>_4x4.root`, `faser_xsec/faserSplines.7TeV.xml`; override with `--geometry-file`,
 `--flux-file`, `--splines`). The luminosity is split evenly over `--jobs` (run numbers `--run`,
 `--run+1`, ...; seed = `--seed` + run number), with at most `--max-parallel` jobs at once.
-Output goes to `output/`: `.ghep.root` and `.gfaser.root` per job (`--no-gfaser`, `--cc-only`),
+Output goes to `output/`: by default only the `.gfaser.root` per job (`gevgen_faser --gfaser
+--no-ghep`); `--ghep` also keeps the GENIE `.ghep.root`, `--ghep-only` writes only that; `--cc-only`,
 a log per job, a record of the exact commands (`<prefix>.r<runs>.run_genie.sh`) and a summary
 with events and time per event (`<prefix>.r<runs>.run_genie_summary.log`). `--merge` hadds the
 gFaser files; `--export` copies them with the record to `$FASERDATA/GENIE` for the FASER
@@ -136,7 +137,7 @@ simulation. `python3 run_genie.py -h` lists all options.
 
 ## Event output: GHEP and gFaser
 
-`gevgen_faser` always writes the GENIE GHEP file `[prefix].[run].ghep.root`.
+`gevgen_faser` writes the GENIE GHEP file `[prefix].[run].ghep.root` (unless `--no-ghep`).
 With `--gfaser` it also writes the flat FASER ntuple `[prefix].[run].gfaser.root`
 (tree `gFaser`) during generation, so `faser/Ntuple/convertGHEP.C` is no longer needed:
 
@@ -144,7 +145,7 @@ With `--gfaser` it also writes the flat FASER ntuple `[prefix].[run].gfaser.root
 gevgen_faser -l 1000.0 -r 0 -g $GENIE_HOME/data/GDML/FASERCAL_V10.gdml \
    -f $GENIE_HOME/data/fluxes/Aki_2024/events_light_4x4.root --seed 2999833 \
    --cross-sections $GENIE_HOME/faser_xsec/faserSplines.7TeV.xml \
-   -o fasercal.Aki2024.v10.light --gfaser          # or --gfaser-cc-only
+   -o fasercal.Aki2024.v10.light --gfaser          # or --gfaser-cc-only; add --no-ghep for gFaser only
 ```
 
 All output files (GHEP, gFaser, `genie-mcjob-<run>.status`) go to `$GENIE_OUTPUT`, which

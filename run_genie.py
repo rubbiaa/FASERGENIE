@@ -22,10 +22,11 @@ script builds those command lines for you:
     and every run number gets its own seed), each at --lumi/--jobs fb^-1,
     running at most --max-parallel at a time (default: number of CPUs);
   - writes everything to the output directory ($GENIE_OUTPUT, i.e.
-    GENIE3.06/output, unless --output-dir): the .ghep.root and, by default,
-    the .gfaser.root files (gevgen_faser --gfaser; --no-gfaser to skip,
-    --cc-only for CC events only in the gFaser file), one log per job, the
-    genie-mcjob-<run>.status files;
+    GENIE3.06/output, unless --output-dir): by default only the flat
+    .gfaser.root file (gevgen_faser --gfaser --no-ghep); --ghep to also keep
+    the GENIE .ghep.root file, --ghep-only for the .ghep.root alone, and
+    --cc-only for CC events only in the gFaser file; plus one log per job
+    and the genie-mcjob-<run>.status files;
   - records the exact commands in <prefix>.r<runs>.run_genie.sh next to the
     output, so the luminosity each file was generated at can be found
     again later (run_convertgenie.py scans *.sh files next to the GENIE
@@ -50,6 +51,7 @@ Usage:
     python3 run_genie.py --flux-file data/fluxes/Kling_2023/DPMJET.root --prefix faser.DPMJET
     python3 run_genie.py --tune G25_01a_00_000 --splines faser_xsec/faserSplines.7TeV_G25.xml
     python3 run_genie.py --cc-only --merge --export
+    python3 run_genie.py --ghep                            # also keep the GENIE .ghep.root files
     python3 run_genie.py --dry-run                         # print the plan and commands only
 """
 import argparse
@@ -192,8 +194,10 @@ def parse_args():
     g = p.add_argument_group("output")
     g.add_argument("--output-dir", type=Path, default=None,
                    help="Where all files go (default: $GENIE_OUTPUT = $GENIE_HOME/output).")
-    g.add_argument("--no-gfaser", action="store_true",
-                   help="Write only the GHEP file (no --gfaser).")
+    g.add_argument("--ghep", action="store_true",
+                   help="Also write the GENIE .ghep.root file (default: gFaser only).")
+    g.add_argument("--ghep-only", "--no-gfaser", dest="ghep_only", action="store_true",
+                   help="Write only the GENIE .ghep.root file, no gFaser ntuple.")
     g.add_argument("--cc-only", action="store_true",
                    help="CC events only in the gFaser file (--gfaser-cc-only); GHEP keeps all.")
     g.add_argument("--merge", action="store_true",
@@ -222,10 +226,12 @@ def parse_args():
         args.seed = DEFAULT_SEEDS.get(args.flux, DEFAULT_SEED) if args.flux_file is None else DEFAULT_SEED
     if args.max_parallel is None:
         args.max_parallel = os.cpu_count() or 1
-    if args.cc_only and args.no_gfaser:
-        p.error("--cc-only needs the gFaser file: drop --no-gfaser")
-    if args.merge and args.no_gfaser:
-        p.error("--merge works on the gFaser files: drop --no-gfaser")
+    args.write_gfaser = not args.ghep_only
+    args.write_ghep = args.ghep or args.ghep_only
+    if args.cc_only and not args.write_gfaser:
+        p.error("--cc-only needs the gFaser file: drop --ghep-only")
+    if args.merge and not args.write_gfaser:
+        p.error("--merge works on the gFaser files: drop --ghep-only")
     return args
 
 
@@ -299,18 +305,21 @@ def make_jobs(args, geometry, flux, splines, prefix):
         if args.top_volume:
             cmd += ["-t", args.top_volume]
         cmd += ["-o", prefix]
-        if not args.no_gfaser:
+        if args.write_gfaser:
             cmd.append("--gfaser-cc-only" if args.cc_only else "--gfaser")
+        if not args.write_ghep:
+            cmd.append("--no-ghep")
         if args.extra:
             cmd += shlex.split(args.extra)
         jobs.append({"run": run, "seed": seed, "lumi": lumi_per_job, "cmd": cmd})
     return jobs
 
 
-def job_files(output_dir, prefix, run, with_gfaser):
-    files = {"ghep": output_dir / f"{prefix}.{run}.ghep.root",
-             "status": output_dir / f"genie-mcjob-{run}.status",
+def job_files(output_dir, prefix, run, with_gfaser, with_ghep=True):
+    files = {"status": output_dir / f"genie-mcjob-{run}.status",
              "log": output_dir / f"{prefix}.{run}.log"}
+    if with_ghep:
+        files["ghep"] = output_dir / f"{prefix}.{run}.ghep.root"
     if with_gfaser:
         files["gfaser"] = output_dir / f"{prefix}.{run}.gfaser.root"
     return files
@@ -333,9 +342,10 @@ def print_plan(args, jobs, *, geometry, flux, splines, output_dir, prefix):
     tag(f"jobs:              {args.jobs} (runs {jobs[0]['run']}..{jobs[-1]['run']}, "
         f"seeds {jobs[0]['seed']}..{jobs[-1]['seed']}), at most {min(args.max_parallel, args.jobs)} at a time")
     tag(f"output dir:        {output_dir}")
-    gf = "no" if args.no_gfaser else ("yes, CC only" if args.cc_only else "yes")
-    tag(f"files:             {prefix}.<run>.ghep.root" +
-        ("" if args.no_gfaser else f" + {prefix}.<run>.gfaser.root") + f"  (gFaser: {gf})")
+    kinds = ([f"{prefix}.<run>.gfaser.root" + (" (CC only)" if args.cc_only else "")]
+             if args.write_gfaser else []) + \
+            ([f"{prefix}.<run>.ghep.root"] if args.write_ghep else [])
+    tag(f"files:             {' + '.join(kinds)}")
     tag(f"merge / export:    {'yes' if args.merge else 'no'} / "
         f"{'no' if args.export is None else (args.export or '$FASERDATA/GENIE')}")
     tag("==================================================")
@@ -377,7 +387,7 @@ def run_jobs(jobs, *, args, output_dir, prefix):
     while pending or running:
         while pending and len(running) < args.max_parallel:
             j = pending.pop(0)
-            j["files"] = job_files(output_dir, prefix, j["run"], not args.no_gfaser)
+            j["files"] = job_files(output_dir, prefix, j["run"], args.write_gfaser, args.write_ghep)
             j["logf"] = open(j["files"]["log"], "w")
             j["logf"].write("# " + " ".join(shlex.quote(c) for c in j["cmd"]) + "\n")
             j["logf"].flush()
@@ -449,9 +459,10 @@ def format_summary(args, results, *, geometry, flux, splines, output_dir, prefix
                      f"{args.lumi / len(results):g} fb^-1")
     else:
         lines.append(f"Events:      {args.n_events} requested per job")
-    lines.append(f"gFaser:      {'no' if args.no_gfaser else ('CC only' if args.cc_only else 'all events')}")
+    lines.append(f"gFaser:      {'no' if not args.write_gfaser else ('CC only' if args.cc_only else 'all events')}")
+    lines.append(f"GHEP:        {'yes' if args.write_ghep else 'no'}")
     header = ("run".rjust(6) + "seed".rjust(w + 2) + "events".rjust(w) +
-              ("gFaser".rjust(w) if not args.no_gfaser else "") +
+              ("gFaser".rjust(w) if args.write_gfaser else "") +
               "minutes".rjust(w) + "s/event".rjust(w) + "  status")
     lines += ["-" * len(header), header, "-" * len(header)]
     tot_ev = tot_gf = 0
@@ -463,21 +474,21 @@ def format_summary(args, results, *, geometry, flux, splines, output_dir, prefix
         ok = r["returncode"] == 0 and r["done"]
         row = (str(r["run"]).rjust(6) + str(r["seed"]).rjust(w + 2) +
                (str(r["events"]) if r["events"] is not None else "?").rjust(w))
-        if not args.no_gfaser:
+        if args.write_gfaser:
             row += (str(r["gfaser_events"]) if r["gfaser_events"] is not None else "?").rjust(w)
         row += f"{r['elapsed'] / 60:.1f}".rjust(w) + spe.rjust(w)
         row += "  ok" if ok else f"  FAILED (exit {r['returncode']}, see {r['log'].name})"
         lines.append(row)
     lines.append("-" * len(header))
     row = "TOTAL".rjust(6) + "".rjust(w + 2) + str(tot_ev).rjust(w)
-    if not args.no_gfaser:
+    if args.write_gfaser:
         row += str(tot_gf).rjust(w)
     lines.append(row + f"   wall time {wall / 60:.1f} min")
     if args.lumi is not None and tot_ev:
         lines.append(f"Rate:        {tot_ev / args.lumi:.2f} events per fb^-1")
     lines.append("Files:")
     for r in results:
-        names = r["ghep"].name + ("" if args.no_gfaser else "  " + r["gfaser"].name)
+        names = "  ".join(r[k].name for k in ("gfaser", "ghep") if k in r)
         lines.append(f"  {names}")
     lines.append("==================================================================")
     return "\n".join(lines) + "\n"
@@ -555,7 +566,7 @@ def main():
     # existing output for these runs?
     output_dir.mkdir(parents=True, exist_ok=True)
     existing = [f for j in jobs
-                for f in job_files(output_dir, prefix, j["run"], not args.no_gfaser).values()
+                for f in job_files(output_dir, prefix, j["run"], args.write_gfaser, args.write_ghep).values()
                 if f.exists()]
     if existing:
         preview = ", ".join(f.name for f in existing[:4]) + (", ..." if len(existing) > 4 else "")

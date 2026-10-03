@@ -25,7 +25,7 @@
                         [-l luminosity_to_generate]
                         [-L flux_file_lumi_norm]
                         [-o outfile_prefix]
-                        [--gfaser] [--gfaser-cc-only]
+                        [--gfaser] [--gfaser-cc-only] [--no-ghep]
                         [--output-dir directory]
                         [--seed random_number_seed]
                         [-t top_volume_name_at_geom || -t +Vol1-Vol2...]  
@@ -104,6 +104,10 @@
               As --gfaser, but keep only charged-current events in the gFaser
               file (the GHEP file still has all events); same selection as
               convertGHEP.C(..., ccOnly=true).
+           --no-ghep
+              Do not write the GHEP file: only the gFaser ntuple (requires --gfaser
+              or --gfaser-cc-only). Saves disk space and time, but the GHEP file is
+              what other GENIE tools (gntpc, gevdump, reweighting) read.
            --output-dir
               Directory for the GHEP file, the gFaser file and the job status file.
               Default: $GENIE_OUTPUT (set by setup.sh to $GENIE_HOME/output), or the
@@ -395,6 +399,7 @@ long int        gOptRanSeed;                   // random number seed
 string          gOptInpXSecFile;               // cross-section splines
 bool            gOptWriteGFaser = false;       // also write the flat gFaser ntuple
 bool            gOptGFaserCCOnly = false;      // ... with CC events only
+bool            gOptWriteGHEP = true;          // write the GHEP file (--no-ghep: gFaser only)
 
 //____________________________________________________________________________
 int main(int argc, char ** argv)
@@ -528,8 +533,12 @@ int main(int argc, char ** argv)
 
   // Initialize an Ntuple Writer to save GHEP records into a TTree
   NtpWriter ntpw(kDefOptNtpFormat, gOptRunNu);
-  ntpw.CustomizeFilenamePrefix(gOptEvFilePrefix);
-  ntpw.Initialize();
+  if (gOptWriteGHEP) {
+    ntpw.CustomizeFilenamePrefix(gOptEvFilePrefix);
+    ntpw.Initialize();
+  } else {
+    LOG("gevgen_faser", pNOTICE) << "--no-ghep: no GHEP file, gFaser ntuple only";
+  }
 
   // Optionally, the flat gFaser ntuple ([prefix].[run].gfaser.root)
   GFaserNtpWriter gfaserw;
@@ -585,7 +594,7 @@ int main(int argc, char ** argv)
          << "Generated event: " << *event;
 
       // Add event at the output ntuple, refresh the mc job monitor & clean-up
-      ntpw.AddEventRecord(ievent, event);
+      if (gOptWriteGHEP) ntpw.AddEventRecord(ievent, event);
       if (gOptWriteGFaser) gfaserw.Add(*event);
       mcjmonitor.Update(ievent,event);
       ievent++;
@@ -638,7 +647,7 @@ int main(int argc, char ** argv)
         << "\n ** Normalization for generated sample:      " << pot
         << " " << exposureUnits << " * detector";
 
-    ntpw.EventTree()->SetWeight(pot); // store POT
+    if (gOptWriteGHEP) ntpw.EventTree()->SetWeight(pot); // store POT
     gfaser_pot = pot;
   }
 
@@ -652,7 +661,7 @@ int main(int argc, char ** argv)
                                  << " events in " << gfaser_filename;
     gfaserw.Save(gfaser_pot);
   }
-  ntpw.Save();
+  if (gOptWriteGHEP) ntpw.Save();
 
   // Clean-up
   delete geom_driver;
@@ -784,6 +793,13 @@ void GetCommandLineArgs(int argc, char ** argv)
   // random number seed
   gOptGFaserCCOnly = parser.OptionExists("gfaser-cc-only");
   gOptWriteGFaser  = parser.OptionExists("gfaser") || gOptGFaserCCOnly;
+  gOptWriteGHEP    = !parser.OptionExists("no-ghep");
+  if (!gOptWriteGHEP && !gOptWriteGFaser) {
+    LOG("gevgen_faser", pFATAL)
+      << "--no-ghep needs --gfaser or --gfaser-cc-only (otherwise nothing is written)";
+    PrintSyntax();
+    exit(1);
+  }
 
   if( parser.OptionExists("seed") ) {
     LOG("gevgen_faser", pINFO) << "Reading random number seed";
@@ -1173,7 +1189,7 @@ void PrintSyntax(void)
     << "\n                   [-l luminosity_to_generate]"
     << "\n                   [-L flux_file_lumi_norm (default: 150 fb^-1)]"
     << "\n                   [-o outfile_prefix]"
-    << "\n                   [--gfaser] [--gfaser-cc-only]"
+    << "\n                   [--gfaser] [--gfaser-cc-only] [--no-ghep]"
     << "\n                   [--output-dir directory (default: $GENIE_OUTPUT)]"
     << "\n                   [--seed random_number_seed]"
     << "\n                   [-t top_volume_name_at_geom || -t +Vol1-Vol2...]"
