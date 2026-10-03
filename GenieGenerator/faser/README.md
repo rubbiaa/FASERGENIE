@@ -21,7 +21,7 @@ source GenieGenerator/faser/buildGenerator.sh
 # you are now back in the GenieGenerator directory
 
 source faser/getXsec.sh
-source faser/getFluxNtp.sh
+source $GENIE_HOME/data/fluxes/getFluxNtp.sh
 
 # test by running some simple jobs
 
@@ -36,7 +36,7 @@ source ../GenieGenerator/faser/runGenerator_5_SIBYLL.sh
 source ../GenieGenerator/faser/runGenerator_5_DPMJET.sh
 ```
 
-Note that the cross-section and flux Ntuple files only need to be downloaded once using getXsec.sh and getFluxNtp.sh, respectively.
+Note that the cross-section and flux Ntuple files only need to be downloaded once using getXsec.sh and data/fluxes/getFluxNtp.sh, respectively.
 
 To convert Genie's "ghep" root files to an ntuple readable by Athena/Calypso, do:
 

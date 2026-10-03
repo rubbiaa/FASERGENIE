@@ -139,9 +139,10 @@ GENIE3.06/                  <- git repository
 |-- setup.sh   build.sh     <- pick the site
 |-- setup_{mac,lcg,ubuntu}.sh
 |-- build_genie_{mac,lcg,ubuntu}.sh
+|-- data/    GDML/ obsolete/ fluxes/
 |-- GenieGenerator/         <- GENIE 3.06.02 + FASER
 |   |-- src/  config/  data/
-|   |-- faser/   (geometries, fluxes, scripts)
+|   |-- faser/   (run scripts, Splines, Ntuple)
 |   |   |-- TPythia6_standalone/
 |   |   `-- build/external/  (patch, Pythia6 CMake)
 |-- install/          \
@@ -154,8 +155,8 @@ GENIE3.06/                  <- git repository
     \begin{itemize}\small
       \item Full GENIE history kept (7\,962 commits), FASER work on top
       \item Build products, downloads, splines and event files are \emph{git-ignored}
-      \item Large Kling 2023 flux ntuples ($\le 575$\,MB) not in git: regenerated with
-            \code{getRawFluxes.sh} + \code{convertAllFluxes.sh}
+      \item Geometries (\code{data/GDML}, \code{data/obsolete}) and fluxes (\code{data/fluxes}) outside the GENIE tree
+      \item Large Kling 2023 flux ntuples ($\le 575$\,MB) not in git: \code{data/fluxes/getFluxNtp.sh}
       \item Scripts find the source tree and work directory automatically
     \end{itemize}
   \end{columns}
@@ -312,7 +313,7 @@ source setup.sh                           # = setup_ubuntu.sh
     \code{NaturalIsotopes::GetIsotopeData()} & re-added \\
     weighted-flux POT fix in \code{GSimpleNtpFlux} & \textbf{already upstream} \\
     tunes \code{F23\_00a}, \code{G25\_01a} & ported \\
-    \code{faser/} (geometries, fluxes, scripts) & copied; big fluxes git-ignored \\
+    \code{faser/} scripts; geometries and fluxes in top-level \code{data/} & copied; big fluxes git-ignored \\
     \bottomrule
   \end{tabular}
   \vspace{0.6em}
@@ -428,8 +429,8 @@ source setup.sh                          # mac, lxplus or ubuntu: detected
 cd GenieGenerator && make -j && make install && cd ..
 
 # event generation (FASERCal V10, Aki 2024 light flux, 1000 fb^-1)
-gevgen_faser -l 1000.0 -r 0 -g $GENIE/faser/FASERCAL_V10.gdml \
-   -f $GENIE/faser/Fluxes/Aki_2024/events_light_4x4.root --seed 2999833 \
+gevgen_faser -l 1000.0 -r 0 -g $GENIE_HOME/data/GDML/FASERCAL_V10.gdml \
+   -f $GENIE_HOME/data/fluxes/Aki_2024/events_light_4x4.root --seed 2999833 \
    --cross-sections $GENIE_HOME/faser_xsec/faserSplines.7TeV.xml \
    -o fasercal.Aki2024.v10.light
 

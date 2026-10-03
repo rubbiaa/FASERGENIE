@@ -11,3 +11,6 @@
 .DS_Store
 *.ghep.root
 genie-mcjob-*.status
+# large flux ntuples: download with data/fluxes/getFluxNtp.sh
+# (or regenerate with data/fluxes/Kling_2023/getRawFluxes.sh + convertAllFluxes.sh)
+/data/fluxes/Kling_2023/*.root

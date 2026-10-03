@@ -1,8 +1,10 @@
 #!/bin/bash
 
-mkdir -p $GENIE/faser/Fluxes/Kling_2023
+# downloads into data/fluxes/Kling_2023, next to this script (bash: run or source it)
+_fluxdir="$( cd "$( dirname "${BASH_SOURCE[0]:-$0}" )" && pwd )/Kling_2023"
+mkdir -p "${_fluxdir}"
 
-pushd $GENIE/faser/Fluxes/Kling_2023
+pushd "${_fluxdir}"
 
 #DPMJET high statistics, all flavors
 wget -O DPMJET.root https://cernbox.cern.ch/s/4OT9Dua4t0UsZjP/download

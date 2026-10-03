@@ -1,8 +1,8 @@
 # generate_faser_script.py
 
 output_file = "run_faser.sh"
-geometry_file = "$GENIE/faser/geometry_v5.gdml"
-flux_file = "$GENIE/faser/Fluxes/Aki_2024/events_charm_4x4.root"
+geometry_file = "$GENIE_HOME/data/obsolete/geometry_v5.gdml"
+flux_file = "$GENIE_HOME/data/fluxes/Aki_2024/events_charm_4x4.root"
 xsec_file = "$GENIE_HOME/faser_xsec/faserSplines.7TeV.xml"
 output_prefix = "fasercal.Aki2024.charm"
 initial_seed = 4189820

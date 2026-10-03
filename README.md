@@ -45,7 +45,11 @@ GENIE3.06/                    <- this repository = work directory (GENIE_HOME)
 ├── setup.sh  build.sh  setup_<site>.sh  build_genie_<site>.sh   <- shortcuts (site = mac, lcg, ubuntu)
 ├── GenieGenerator/           <- GENIE source tree (GENIE)
 │   ├── setup*.sh  build*.sh
-│   └── faser/build/external/ <- helpers used by the build scripts
+│   └── faser/                <- FASER scripts: run*.sh, Splines/, Ntuple/, build/external/
+├── data/
+│   ├── GDML/                 <- current geometry: FASERCAL_V10.gdml
+│   ├── obsolete/             <- older geometries (FASERCAL V6-V9, FaserNu2-4, geometry_v4-v6, ...)
+│   └── fluxes/               <- Aki_2024/, Kling_2021/, Kling_2023/ and getFluxNtp.sh
 ├── install/  build/          <- created by the build script (git-ignored)
 ├── external/downloads/       <- cached source tarballs
 ├── external/install/         <- Pythia6, TPythia6 (and APFEL): kept apart from install/
@@ -115,8 +119,8 @@ With `--gfaser` it also writes the flat FASER ntuple `[prefix].[run].gfaser.root
 (tree `gFaser`) during generation, so `faser/Ntuple/convertGHEP.C` is no longer needed:
 
 ```bash
-gevgen_faser -l 1000.0 -r 0 -g $GENIE/faser/FASERCAL_V10.gdml \
-   -f $GENIE/faser/Fluxes/Aki_2024/events_light_4x4.root --seed 2999833 \
+gevgen_faser -l 1000.0 -r 0 -g $GENIE_HOME/data/GDML/FASERCAL_V10.gdml \
+   -f $GENIE_HOME/data/fluxes/Aki_2024/events_light_4x4.root --seed 2999833 \
    --cross-sections $GENIE_HOME/faser_xsec/faserSplines.7TeV.xml \
    -o fasercal.Aki2024.v10.light --gfaser          # or --gfaser-cc-only
 ```
@@ -130,9 +134,11 @@ normalized to POT, the gFaser tree carries the same weight as the GHEP tree.
 
 ## Flux files
 
-The large Kling 2023 flux ntuples (`GenieGenerator/faser/Fluxes/Kling_2023/*.root`, up to 575 MB)
-are not in git; regenerate them with `GenieGenerator/faser/Fluxes/Kling_2023/getRawFluxes.sh` and
-`convertAllFluxes.sh`, or copy them from an existing installation.
+Fluxes live in `data/fluxes/` (geometries in `data/GDML/`, old ones in `data/obsolete/`).
+The large Kling 2023 flux ntuples (`data/fluxes/Kling_2023/*.root`, up to 575 MB) are not in
+git: download them with `data/fluxes/getFluxNtp.sh`, regenerate them with
+`data/fluxes/Kling_2023/getRawFluxes.sh` and `convertAllFluxes.sh`, or copy them from an
+existing installation.
 
 ## Splines
 

@@ -233,12 +233,12 @@ if [ "${can_setup}" = 1 ]; then
             *) ok "splines" "${xs}";;
         esac
     else runreq "splines" "${xs} -- make with faser/Splines (days) or copy/link them"; fi
-    chk_file "geometry" "${GENIE}/faser/FASERCAL_V10.gdml" runreq
+    chk_file "geometry" "${GENIE_HOME}/data/GDML/FASERCAL_V10.gdml" runreq
     for fl in Aki_2024/events_light_4x4.root Aki_2024/events_charm_4x4.root Kling_2021/Kling_2021.root; do
-        chk_file "flux" "${GENIE}/faser/Fluxes/${fl}" runreq
+        chk_file "flux" "${GENIE_HOME}/data/fluxes/${fl}" runreq
     done
     for fl in Kling_2023/DPMJET.root Kling_2023/SIBYLL.root; do   # git-ignored, large
-        chk_file "flux" "${GENIE}/faser/Fluxes/${fl}" opt "regenerate with Kling_2023/getRawFluxes.sh + convertAllFluxes.sh"
+        chk_file "flux" "${GENIE_HOME}/data/fluxes/${fl}" opt "download with data/fluxes/getFluxNtp.sh"
     done
 fi
 
