@@ -103,6 +103,7 @@ lcg)
     . /etc/os-release 2>/dev/null
     case "${ID:-}" in rhel|almalinux|rocky|centos) [ "${VERSION_ID%%.*}" = 9 ] || warn "OS" "${PRETTY_NAME}: default LCG_PLATFORM is el9";; esac
     LCG_VERSION=${LCG_VERSION:-LCG_107}; LCG_PLATFORM=${LCG_PLATFORM:-x86_64-el9-gcc13-opt}
+    case "${LCG_VERSION}" in [0-9]*) LCG_VERSION="LCG_${LCG_VERSION}";; esac   # LCG views export LCG_VERSION=107
     view=/cvmfs/sft.cern.ch/lcg/views/${LCG_VERSION}/${LCG_PLATFORM}
     if [ ! -d /cvmfs/sft.cern.ch/lcg ]; then miss "CVMFS" "/cvmfs/sft.cern.ch not mounted"; can_setup=0
     elif [ ! -f "${view}/setup.sh" ]; then

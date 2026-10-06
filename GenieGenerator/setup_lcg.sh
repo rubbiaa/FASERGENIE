@@ -12,6 +12,7 @@
 # -----------------------------------------------------------------------------
 
 LCG_VERSION=${LCG_VERSION:-LCG_107}
+case "${LCG_VERSION}" in [0-9]*) LCG_VERSION="LCG_${LCG_VERSION}";; esac   # LCG views export LCG_VERSION=107
 LCG_PLATFORM=${LCG_PLATFORM:-x86_64-el9-gcc13-opt}
 LCG_VIEW=/cvmfs/sft.cern.ch/lcg/views/${LCG_VERSION}/${LCG_PLATFORM}
 
