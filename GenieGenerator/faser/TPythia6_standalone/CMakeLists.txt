@@ -37,10 +37,22 @@ if(EXISTS ${PYTHIA6_LIB}/pydata.o)
 endif()
 message(STATUS "Pythia6 link items: ${PYTHIA6_LINK}")
 
+# LCG's libpythia6.so leaves the Pythia6 user routines (upinit_, upevnt_, pytime_,
+# sugra_, ...) undefined; executables linked with -Wl,--no-undefined then fail.
+# -DPYTHIA6_DUMMY_SRC=<pythia6_dummy.c> compiles empty stubs into libEGPythia6,
+# which every GENIE executable links explicitly (-lEGPythia6).
+set(PYTHIA6_DUMMY_SRC "" CACHE FILEPATH "C file with Pythia6 dummy user routines (LCG)")
+set(EGPYTHIA6_EXTRA_SRC)
+if(PYTHIA6_DUMMY_SRC)
+  list(APPEND EGPYTHIA6_EXTRA_SRC ${PYTHIA6_DUMMY_SRC})
+  message(STATUS "Adding Pythia6 dummy routines from ${PYTHIA6_DUMMY_SRC}")
+endif()
+
 add_library(EGPythia6 SHARED
   ${SRC_DIR}/src/TMCParticle.cxx
   ${SRC_DIR}/src/TPythia6.cxx
-  ${SRC_DIR}/src/TPythia6Decayer.cxx)
+  ${SRC_DIR}/src/TPythia6Decayer.cxx
+  ${EGPYTHIA6_EXTRA_SRC})
 target_include_directories(EGPythia6 PUBLIC
   $<BUILD_INTERFACE:${SRC_DIR}/TPythia6>
   $<INSTALL_INTERFACE:include/TPythia6>)

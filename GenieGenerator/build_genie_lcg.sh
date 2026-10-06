@@ -30,26 +30,20 @@ rm -rf "${WORK}/build/TPythia6"
 cmake -S "${GENIE}/faser/TPythia6_standalone" -B "${WORK}/build/TPythia6" \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX="${TPYTHIA6_PATH}" \
-      -DPYTHIA6_LIB="${PYTHIA6_LIB}"
+      -DPYTHIA6_LIB="${PYTHIA6_LIB}" \
+      -DPYTHIA6_DUMMY_SRC="${EXT}/pythia6_dummy.c"
 cmake --build   "${WORK}/build/TPythia6" -j "${NJ}"
 cmake --install "${WORK}/build/TPythia6"
 
-# GENIE >= 3.06 links "-lPythia6" (ROOT's historical name for the library).
-# Provide that name next to libEGPythia6 unless it already resolves (on the default
-# case-insensitive macOS filesystem libpythia6.dylib already matches).
 # GENIE links -lPythia6 (capital P); LCG ships libpythia6.so, which also leaves the
 # user routines (upinit_, upevnt_, pytime_, sugra_, ...) undefined -> executables fail
 # with -Wl,--no-undefined. libPythia6.so is therefore a GNU ld linker script that pulls
-# in libpythia6.so + the dummy routines (LCG libpythia6_dummy.so, else our own stubs).
+# in libpythia6.so + our dummy stubs; the same stubs are also compiled into libEGPythia6.
 provide_libPythia6() {   # $1 = directory of the LCG libpythia6.so
     local lib="${GENIE_EXT_INSTALL}/lib" dummy
     mkdir -p "${lib}"
-    if [ -f "$1/libpythia6_dummy.so" ]; then
-        dummy="$1/libpythia6_dummy.so"
-    else
-        dummy="${lib}/libpythia6_genie_dummy.so"
-        gcc -O2 -fPIC -shared "${EXT}/pythia6_dummy.c" -o "${dummy}"
-    fi
+    dummy="${lib}/libpythia6_genie_dummy.so"
+    gcc -O2 -fPIC -shared "${EXT}/pythia6_dummy.c" -o "${dummy}"
     rm -f "${lib}/libPythia6.so"
     printf '/* GNU ld script written by build_genie_lcg.sh */\nINPUT ( %s %s )\n' \
         "$1/libpythia6.so" "${dummy}" > "${lib}/libPythia6.so"
