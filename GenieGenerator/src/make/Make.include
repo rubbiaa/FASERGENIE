@@ -248,7 +248,7 @@ ifeq ($(strip $(ARCH)),macosx)
 PYTHIA6_LIBRARIES  = -L$(PYTHIA6_DIR) -lPythia6
 endif
 
-PY6ROOT_LIBRARY = -lEGPythia6
+PY6ROOT_LIBRARY = $(SYSLIBS) -lEGPythia6
 else
   $(info GOPT_ENABLE_PYTHIA6 is NO)
 endif
@@ -412,7 +412,7 @@ endif
 
 # MAC OS X with gcc or clang, 64-bit mode, including arm
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-ifneq (,$(filter $(strip $(ARCH)),macosx64 macosxarm64))
+ifeq ($(strip $(ARCH)),macosx64)
 OSX_VERSION = $(shell sw_vers | grep 'ProductVersion:' | grep -o '[0-9]*\.[0-9]*\.[0-9]*')
 OSXVRS_MAJ  = $(shell awk 'BEGIN {\
 		str="$(OSX_VERSION)"; split(str, tk, "."); print tk[1]}')
@@ -562,6 +562,42 @@ ObjSuf       := o
 SrcSuf       := cxx
 FORT         := g77
 FORTOPTS     := $(FFLAGS) -g -c -O -DLINUX $(F77INCS) -fno-second-underscore
+RANLIB       := ranlib
+SOCMD         = $(LD)
+OutPutOpt     = -o
+SOMINF        =
+EXTRALIBS     =
+endif
+
+
+# MAC OS X / Apple Silicon (arm64) with clang   [added by patch_genie_make.sh]
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# GENIE_CXX / GENIE_CC / GENIE_LDFLAGS come from setup_mac.sh (conda compilers)
+ifeq ($(strip $(ARCH)),macosxarm64)
+ARCH_OK       = YES
+IS_MACOSX     = YES
+ifdef GENIE_CXX
+  CXX := $(GENIE_CXX)
+  CC  := $(GENIE_CC)
+  LD  := $(GENIE_CXX)
+endif
+CXXFLAGS      = -pipe -W -Wall -Wshadow -Woverloaded-virtual \
+                -fsigned-char -fno-common -Wno-strict-aliasing \
+                $(subst -std=c++,-std=gnu++,$(ROOT_FLAGS)) \
+                $(GOPT_WITH_CXX_DEBUG_FLAG) \
+                $(GOPT_WITH_CXX_OPTIMIZ_FLAG) \
+                $(GOPT_WITH_CXX_USERDEF_FLAGS)
+LDFLAGS       = $(GENIE_LDFLAGS)
+# absolute install names -> executables find the installed dylibs without DYLD_*
+SOFLAGS       = -dynamiclib -undefined dynamic_lookup $(GENIE_LDFLAGS) \
+                -Wl,-install_name,$(GENIE_LIB_INSTALLATION_PATH)/$(@F)
+DllSuf       := dylib
+DllLinkSuf   := so
+StaticLibSuf := a
+ObjSuf       := o
+SrcSuf       := cxx
+FORT         := gfortran
+FORTOPTS     := $(FFLAGS) -g -c -O $(F77INCS) -fno-second-underscore
 RANLIB       := ranlib
 SOCMD         = $(LD)
 OutPutOpt     = -o

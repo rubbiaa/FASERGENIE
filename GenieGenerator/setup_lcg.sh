@@ -84,7 +84,7 @@ export SYSLIBS="-L${TPYTHIA6_PATH}/lib"
 export PATH="${GENIE_INSTALL}/bin:${PATH}"
 export LD_LIBRARY_PATH="${GENIE_INSTALL}/lib:${GENIE_EXT_INSTALL}/lib:${PYTHIA6_LIB}:${LD_LIBRARY_PATH}"
 # GENIE's Make.include uses an undefined $(PYTHIA_DIR) for -L, so help the linker:
-export LIBRARY_PATH="${PYTHIA6_LIB}:${LCG_VIEW}/lib:${LIBRARY_PATH}"
+export LIBRARY_PATH="${GENIE_EXT_INSTALL}/lib:${PYTHIA6_LIB}:${LCG_VIEW}/lib:${LIBRARY_PATH}"
 export ROOT_INCLUDE_PATH="${TPYTHIA6_PATH}/include/TPythia6:${ROOT_INCLUDE_PATH}"
 
 echo "GENIE env: ${LCG_VERSION} / ${LCG_PLATFORM}, ROOT $(root-config --version 2>/dev/null)"
